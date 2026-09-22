@@ -76,20 +76,21 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          php artisan wayfinder:generate
 
       - name: Step 1 - Pint Check
         run: ./vendor/bin/pint --test
 
-      - name: Step 2 - ESLint & TypeScript Check
-        run: |
-          npm run lint
-          npm run types:check
+      - name: Step 2 - ESLint Check
+        run: npm run lint
 
       - name: Step 3 - Larastan Level 6 Analysis
         run: ./vendor/bin/phpstan analyse --no-progress
 
-      - name: Step 4 - Build Vite Assets (Preceding Pest)
-        run: npm run build
+      - name: Step 4 - Build Vite Assets & Type Check (Preceding Pest)
+        run: |
+          npm run build
+          npm run types:check
 
       - name: Step 5 - Run Pest Tests with PostgreSQL
         env:
