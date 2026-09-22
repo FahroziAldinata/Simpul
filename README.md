@@ -23,25 +23,27 @@ SIMPUL adalah platform sistem informasi sekolah modern yang berfokus pada **4 mo
 
 Untuk menghindari bentrok port dengan proyek lain (khususnya PALMVISION yang menggunakan port default Sail `80`, `5173`, `5432`, `6379`), SIMPUL menggunakan alokasi port khusus:
 
-| Service | Container Image | Port Host : Container | Deskripsi |
-|---|---|---|---|
-| `laravel.test` | `sail-8.3/app` | `8080 : 80` (App) <br> `5174 : 5174` (Vite) | Web application server (PHP 8.3 + Nginx/Node) |
-| `pgsql` | `postgres:16` | `5433 : 5432` | Basis data utama PostgreSQL 16 |
-| `redis` | `redis:alpine` | `6380 : 6379` | Cache, session, dan queue driver |
-| `horizon` | `sail-8.3/app` | *Internal network* | Queue worker supervisor (`php artisan horizon`) |
-| `reverb` | `sail-8.3/app` | `8081 : 8080` | Server WebSocket real-time (`php artisan reverb:start`) |
-| `gotenberg` | `gotenberg/gotenberg:8` | `3001 : 3000` | Microservice headless Chromium PDF renderer |
-| `minio` | `minio/minio:latest` | `9002 : 9000` (API) <br> `9003 : 9001` (Console) | S3-compatible local object storage |
+| Service        | Container Image         | Port Host : Container                            | Deskripsi                                               |
+| -------------- | ----------------------- | ------------------------------------------------ | ------------------------------------------------------- |
+| `laravel.test` | `sail-8.3/app`          | `8080 : 80` (App) <br> `5174 : 5174` (Vite)      | Web application server (PHP 8.3 + Nginx/Node)           |
+| `pgsql`        | `postgres:16`           | `5433 : 5432`                                    | Basis data utama PostgreSQL 16                          |
+| `redis`        | `redis:alpine`          | `6380 : 6379`                                    | Cache, session, dan queue driver                        |
+| `horizon`      | `sail-8.3/app`          | _Internal network_                               | Queue worker supervisor (`php artisan horizon`)         |
+| `reverb`       | `sail-8.3/app`          | `8081 : 8080`                                    | Server WebSocket real-time (`php artisan reverb:start`) |
+| `gotenberg`    | `gotenberg/gotenberg:8` | `3001 : 3000`                                    | Microservice headless Chromium PDF renderer             |
+| `minio`        | `minio/minio:latest`    | `9002 : 9000` (API) <br> `9003 : 9001` (Console) | S3-compatible local object storage                      |
 
 ---
 
 ## 3. Menjalankan Proyek Secara Lokal
 
 ### Prerequisites
+
 - Docker & Docker Compose
 - WSL2 (Ubuntu) atau Linux
 
 ### Perintah Cepat
+
 ```bash
 # 1. Salin environment config
 cp .env.example .env
