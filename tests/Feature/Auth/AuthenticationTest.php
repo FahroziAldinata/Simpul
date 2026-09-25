@@ -76,6 +76,37 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_users_can_authenticate_using_nip()
+    {
+        $user = User::factory()->create([
+            'nip' => '198501012010011001',
+        ]);
+
+        $response = $this->post(route('login.store'), [
+            'email' => '198501012010011001',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_users_can_authenticate_with_remember_me()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => true,
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertNotNull($response->headers->getCookies());
+    }
+
     public function test_users_are_rate_limited()
     {
         $user = User::factory()->create();
@@ -84,6 +115,27 @@ class AuthenticationTest extends TestCase
 
         $response = $this->post(route('login.store'), [
             'email' => $user->email,
+            'password' => 'wrong-password',
+        ]);
+
+        $response->assertTooManyRequests();
+    }
+
+    public function test_repeated_failed_logins_trigger_rate_limiting()
+    {
+        $user = User::factory()->create([
+            'nip' => '198501012010011002',
+        ]);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('login.store'), [
+                'email' => $user->nip,
+                'password' => 'wrong-password',
+            ]);
+        }
+
+        $response = $this->post(route('login.store'), [
+            'email' => $user->nip,
             'password' => 'wrong-password',
         ]);
 
