@@ -10,6 +10,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::post('sekolah-aktif', [SekolahAktifController::class, 'update'])->name('sekolah-aktif.update');
     Route::get('pegawai/{pegawai}', [PegawaiController::class, 'show'])->name('pegawai.show');
+    Route::get('audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])
+        ->middleware('permission:audit_log.view')
+        ->name('audit-logs.index');
 });
 
 require __DIR__.'/settings.php';
