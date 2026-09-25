@@ -1,0 +1,32 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Pegawai;
+use App\Models\Sekolah;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Pegawai>
+ */
+class PegawaiFactory extends Factory
+{
+    protected $model = Pegawai::class;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'sekolah_id' => Sekolah::factory(),
+            'user_id' => User::factory(),
+            'nuptk' => fake()->numerify('################'),
+            'nip' => fake()->numerify('##################'),
+            'nama' => fake()->name(),
+            'jenis' => fake()->randomElement(['guru', 'tu', 'kepsek']),
+            'status_kepegawaian' => fake()->randomElement(['pns', 'pppk', 'gty', 'gtt']),
+        ];
+    }
+}
