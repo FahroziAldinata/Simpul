@@ -27,7 +27,7 @@ use Illuminate\Support\Carbon;
 class Pegawai extends Model
 {
     /** @use HasFactory<PegawaiFactory> */
-    use BelongsToSekolah, HasFactory, HasUuids, SoftDeletes;
+    use \App\Models\Concerns\LogsSimpulActivity, BelongsToSekolah, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'pegawai';
 

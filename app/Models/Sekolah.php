@@ -23,7 +23,7 @@ use Illuminate\Support\Carbon;
 class Sekolah extends Model
 {
     /** @use HasFactory<SekolahFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use \App\Models\Concerns\LogsSimpulActivity, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'sekolah';
 
