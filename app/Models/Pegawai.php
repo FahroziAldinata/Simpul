@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToSekolah;
 use Database\Factories\PegawaiFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,7 @@ use Illuminate\Support\Carbon;
 class Pegawai extends Model
 {
     /** @use HasFactory<PegawaiFactory> */
-    use HasFactory, HasUuids, SoftDeletes;
+    use BelongsToSekolah, HasFactory, HasUuids, SoftDeletes;
 
     protected $table = 'pegawai';
 
@@ -39,14 +40,6 @@ class Pegawai extends Model
         'jenis',
         'status_kepegawaian',
     ];
-
-    /**
-     * @return BelongsTo<Sekolah, $this>
-     */
-    public function sekolah(): BelongsTo
-    {
-        return $this->belongsTo(Sekolah::class);
-    }
 
     /**
      * @return BelongsTo<User, $this>
