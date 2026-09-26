@@ -79,7 +79,7 @@ class RoleAndPermissionSeeder extends Seeder
         $roles = [
             'super_admin' => $permissions, // Super Admin memiliki semua permission (dan bypass di Gate::before)
             'operator' => [
-                'data_induk.view', 'data_induk.create', 'data_induk.update',
+                'data_induk.view', 'data_induk.create', 'data_induk.update', 'data_induk.delete',
                 'siswa.view', 'siswa.create', 'siswa.update', 'siswa.delete',
                 'pegawai.view', 'pegawai.create', 'pegawai.update', 'pegawai.delete',
                 'jadwal.view',
