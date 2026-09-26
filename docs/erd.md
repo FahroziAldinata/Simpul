@@ -19,6 +19,7 @@ erDiagram
     SEKOLAH ||--o{ HARI_LIBUR : "menetapkan"
     SEKOLAH ||--o{ TITIK_ABSEN : "memiliki"
     SEKOLAH ||--o{ IMPORT_BATCHES : "melakukan"
+    SEKOLAH ||--o{ SEMESTER : "memiliki"
 
     TAHUN_AJARAN ||--o{ SEMESTER : "terdiri atas"
     SEMESTER ||--o{ ROMBEL : "membuka"
@@ -80,11 +81,12 @@ erDiagram
 
     SEMESTER {
         uuid id PK
+        uuid sekolah_id FK "direct tenant isolation (Aturan D1)"
         uuid tahun_ajaran_id FK
-        string tipe "ganjil | genap"
+        string nama "Ganjil | Genap"
         date tanggal_mulai
         date tanggal_selesai
-        boolean is_aktif
+        boolean is_aktif "partial unique per sekolah (Aturan D9)"
     }
 
     ROMBEL {
@@ -366,4 +368,4 @@ erDiagram
 | **D6** | Timezone UTC                | Disimpan di DB sebagai UTC, dikonversi saat presentasi frontend ke `Asia/Jakarta`.                                                                                  |
 | **D7** | No Database Enum            | Status dan jenis disimpan sebagai `varchar/string` dan divalidasi lewat PHP 8.3 Backed Enums di level aplikasi.                                                     |
 | **D8** | Exclusion Constraint        | Pada tabel `jadwal_pelajaran`, bentrok guru/ruang/rombel dicegah menggunakan PostgreSQL `EXCLUDE USING gist` dengan tipe `int4range(jam_mulai_ke, jam_selesai_ke)`. |
-| **D9** | Partial Unique Index        | `UNIQUE (sekolah_id) WHERE is_aktif = true` pada tabel `tahun_ajaran` menjamin hanya satu tahun ajaran aktif per sekolah.                                           |
+| **D9** | Partial Unique Index        | `UNIQUE (sekolah_id) WHERE is_aktif = true` pada tabel `tahun_ajaran` dan tabel `semester` menjamin hanya satu tahun ajaran dan satu semester aktif per sekolah. |

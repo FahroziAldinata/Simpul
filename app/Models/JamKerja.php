@@ -11,6 +11,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
+ * Model JamKerja.
+ *
+ * Catatan Arsitektur:
+ * Model ini dibuat pada Minggu 4 (T-04.10) untuk jam operasional harian sekolah ($kelompok = 'umum')
+ * dan perhitungan total slot alokasi mingguan (totalSlotMingguan).
+ * Model ini akan di-reuse & di-extend pada Minggu 8 (T-08.02) untuk jam kerja pegawai / guru
+ * (dengan kolom toleransi_menit dan kelompok shift kerja spesifik) tanpa membuat tabel baru.
+ *
  * @property string $id
  * @property string $sekolah_id
  * @property string $kelompok

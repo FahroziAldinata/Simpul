@@ -11,6 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
+ * Model Jurusan.
+ *
+ * Catatan Desain Skema:
+ * Kolom `jenjang` sengaja tidak diduplikasi di tabel/model Jurusan karena jenjang sekolah
+ * (SMA/SMK) sudah ditentukan secara normal di tabel induk `sekolah` ($this->sekolah->jenjang).
+ *
  * @property string $id
  * @property string $sekolah_id
  * @property string $kode

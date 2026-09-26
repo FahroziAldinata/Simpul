@@ -16,6 +16,8 @@ class KalenderController extends Controller
      */
     public function index(): Response
     {
+        abort_unless(auth()->user()->can('data_induk.view'), 403);
+
         $hariLibur = HariLibur::orderBy('tanggal_mulai')->get();
         $jamKerja = JamKerja::where('kelompok', 'umum')->orderBy('hari')->get();
 

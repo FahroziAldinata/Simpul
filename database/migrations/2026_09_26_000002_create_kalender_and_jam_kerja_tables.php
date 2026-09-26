@@ -23,10 +23,14 @@ return new class extends Migration
             $table->index(['sekolah_id', 'tanggal_mulai']);
         });
 
+        // Catatan Arsitektur:
+        // Tabel `jam_kerja` sengaja dibuat pada Minggu 4 (T-04.10) untuk jam operasional harian sekolah (kelompok = 'umum'),
+        // dan akan di-reuse serta di-extend pada Minggu 8 (T-08.02) dengan kolom toleransi_menit dan kelompok kerja pegawai spesifik,
+        // sehingga tidak membuat tabel terpisah (menghindari duplikasi skema jam kerja).
         Schema::create('jam_kerja', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('sekolah_id')->constrained('sekolah')->cascadeOnDelete();
-            $table->string('kelompok', 20)->default('umum'); // umum (operasional sekolah per hari)
+            $table->string('kelompok', 20)->default('umum'); // 'umum' = operasional sekolah Minggu 4; shift pegawai Minggu 8
             $table->unsignedTinyInteger('hari'); // 1=Senin, 2=Selasa, ..., 7=Minggu
             $table->time('jam_masuk')->nullable();
             $table->time('jam_pulang')->nullable();
