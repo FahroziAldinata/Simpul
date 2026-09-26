@@ -2,10 +2,15 @@
 import { Link, usePage } from '@inertiajs/vue3';
 import {
     BookOpen,
+    Building2,
     Calendar,
+    CalendarDays,
     ClipboardCheck,
+    Clock,
+    DoorOpen,
     FolderGit2,
     GraduationCap,
+    Layers,
     LayoutGrid,
     ScrollText,
     Users,
@@ -93,6 +98,55 @@ const mainNavItems = computed<NavItem[]>(() => {
     return items;
 });
 
+const dataIndukNavItems = computed<NavItem[]>(() => {
+    if (!can('data_induk.view')) {
+        return [];
+    }
+
+    return [
+        {
+            title: 'Profil Sekolah',
+            href: '/profil-sekolah',
+            icon: Building2,
+        },
+        {
+            title: 'Tahun Ajaran',
+            href: '/tahun-ajaran',
+            icon: CalendarDays,
+        },
+        {
+            title: 'Kalender & Jam Kerja',
+            href: '/kalender',
+            icon: Calendar,
+        },
+        {
+            title: 'Jurusan / Keahlian',
+            href: '/jurusan',
+            icon: Layers,
+        },
+        {
+            title: 'Ruang & Fasilitas',
+            href: '/ruang',
+            icon: DoorOpen,
+        },
+        {
+            title: 'Mata Pelajaran',
+            href: '/mata-pelajaran',
+            icon: BookOpen,
+        },
+        {
+            title: 'Rombel',
+            href: '/rombel',
+            icon: Users,
+        },
+        {
+            title: 'Alokasi Jam',
+            href: '/alokasi-jam',
+            icon: Clock,
+        },
+    ];
+});
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -123,6 +177,11 @@ const footerNavItems: NavItem[] = [
 
         <SidebarContent>
             <NavMain :items="mainNavItems" />
+            <NavMain
+                v-if="dataIndukNavItems.length > 0"
+                label="Data Induk"
+                :items="dataIndukNavItems"
+            />
         </SidebarContent>
 
         <SidebarFooter>
