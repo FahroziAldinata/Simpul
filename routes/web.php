@@ -5,6 +5,7 @@ use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PeriodeAktifController;
+use App\Http\Controllers\RuangController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\TahunAjaranController;
@@ -65,6 +66,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('jurusan/{jurusan}', [JurusanController::class, 'destroy'])
         ->middleware('permission:data_induk.delete')
         ->name('jurusan.destroy');
+
+    // Data Induk: Ruang & Fasilitas
+    Route::get('ruang', [RuangController::class, 'index'])->name('ruang.index');
+    Route::post('ruang', [RuangController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('ruang.store');
+    Route::put('ruang/{ruang}', [RuangController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('ruang.update');
+    Route::delete('ruang/{ruang}', [RuangController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('ruang.destroy');
 });
 
 require __DIR__.'/settings.php';
