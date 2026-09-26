@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsSimpulActivity;
 use Database\Factories\SekolahFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,7 +24,7 @@ use Illuminate\Support\Carbon;
 class Sekolah extends Model
 {
     /** @use HasFactory<SekolahFactory> */
-    use \App\Models\Concerns\LogsSimpulActivity, HasFactory, HasUuids, SoftDeletes;
+    use HasFactory, HasUuids, LogsSimpulActivity, SoftDeletes;
 
     protected $table = 'sekolah';
 

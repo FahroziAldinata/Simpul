@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToSekolah;
+use App\Models\Concerns\LogsSimpulActivity;
 use Database\Factories\PegawaiFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,7 +28,7 @@ use Illuminate\Support\Carbon;
 class Pegawai extends Model
 {
     /** @use HasFactory<PegawaiFactory> */
-    use \App\Models\Concerns\LogsSimpulActivity, BelongsToSekolah, HasFactory, HasUuids, SoftDeletes;
+    use BelongsToSekolah, HasFactory, HasUuids, LogsSimpulActivity, SoftDeletes;
 
     protected $table = 'pegawai';
 
