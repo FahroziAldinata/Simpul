@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PeriodeAktifController;
@@ -52,6 +53,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('semester/{semester}/aktifkan', [TahunAjaranController::class, 'activateSemester'])
         ->middleware('permission:data_induk.update')
         ->name('semester.activate');
+
+    // Data Induk: Jurusan / Program Keahlian
+    Route::get('jurusan', [JurusanController::class, 'index'])->name('jurusan.index');
+    Route::post('jurusan', [JurusanController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('jurusan.store');
+    Route::put('jurusan/{jurusan}', [JurusanController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('jurusan.update');
+    Route::delete('jurusan/{jurusan}', [JurusanController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('jurusan.destroy');
 });
 
 require __DIR__.'/settings.php';
