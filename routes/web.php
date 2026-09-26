@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\PegawaiController;
+use App\Http\Controllers\PeriodeAktifController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
 use App\Http\Controllers\TahunAjaranController;
@@ -13,6 +14,7 @@ Route::inertia('/', 'Welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::post('sekolah-aktif', [SekolahAktifController::class, 'update'])->name('sekolah-aktif.update');
+    Route::post('periode-aktif', [PeriodeAktifController::class, 'update'])->name('periode-aktif.update');
     Route::get('pegawai/{pegawai}', [PegawaiController::class, 'show'])->name('pegawai.show');
     Route::get('audit-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:audit_log.view')

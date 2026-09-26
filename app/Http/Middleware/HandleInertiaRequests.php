@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Sekolah;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,6 +38,36 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
+        $sekolahId = session('sekolah_id') ?? $user?->sekolah_id;
+        $periode = null;
+
+        if ($sekolahId) {
+            $semesters = Semester::where('sekolah_id', $sekolahId)
+                ->with('tahunAjaran')
+                ->orderByDesc('tanggal_mulai')
+                ->get();
+
+            $selectedSemesterId = session('selected_semester_id');
+            $currentSemester = $semesters->firstWhere('id', $selectedSemesterId)
+                ?? $semesters->firstWhere('is_aktif', true)
+                ?? $semesters->first();
+
+            if ($currentSemester && ! $selectedSemesterId) {
+                session(['selected_semester_id' => $currentSemester->id]);
+            }
+
+            $periode = [
+                'selected_semester_id' => $currentSemester?->id,
+                'semester_nama' => $currentSemester?->nama,
+                'tahun_ajaran_nama' => $currentSemester?->tahunAjaran?->nama,
+                'is_aktif' => $currentSemester ? (bool) $currentSemester->is_aktif : true,
+                'daftar_semester' => $semesters->map(fn ($s) => [
+                    'id' => $s->id,
+                    'label' => "TA {$s->tahunAjaran?->nama} - Semester {$s->nama}".($s->is_aktif ? ' (Aktif)' : ''),
+                    'is_aktif' => (bool) $s->is_aktif,
+                ])->values()->all(),
+            ];
+        }
 
         return [
             ...parent::share($request),
@@ -50,6 +81,7 @@ class HandleInertiaRequests extends Middleware
                     ? Sekolah::orderBy('npsn')->get(['id', 'nama', 'npsn'])->toArray()
                     : [],
             ],
+            'periode' => $periode,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
