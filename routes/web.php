@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlokasiJamMapelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
@@ -104,6 +105,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('rombel/{rombel}', [RombelController::class, 'destroy'])
         ->middleware('permission:data_induk.delete')
         ->name('rombel.destroy');
+
+    // Data Induk: Alokasi Jam Mapel per Rombel
+    Route::get('alokasi-jam', [AlokasiJamMapelController::class, 'index'])->name('alokasi-jam.index');
+    Route::post('alokasi-jam', [AlokasiJamMapelController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('alokasi-jam.store');
+    Route::put('alokasi-jam/{alokasiJamMapel}', [AlokasiJamMapelController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('alokasi-jam.update');
+    Route::delete('alokasi-jam/{alokasiJamMapel}', [AlokasiJamMapelController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('alokasi-jam.destroy');
 });
 
 require __DIR__.'/settings.php';
