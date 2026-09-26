@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
+use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PeriodeAktifController;
 use App\Http\Controllers\RuangController;
@@ -78,6 +79,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('ruang/{ruang}', [RuangController::class, 'destroy'])
         ->middleware('permission:data_induk.delete')
         ->name('ruang.destroy');
+
+    // Data Induk: Mata Pelajaran
+    Route::get('mata-pelajaran', [MataPelajaranController::class, 'index'])->name('mata-pelajaran.index');
+    Route::post('mata-pelajaran', [MataPelajaranController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('mata-pelajaran.store');
+    Route::put('mata-pelajaran/{mataPelajaran}', [MataPelajaranController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('mata-pelajaran.update');
+    Route::delete('mata-pelajaran/{mataPelajaran}', [MataPelajaranController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('mata-pelajaran.destroy');
 });
 
 require __DIR__.'/settings.php';
