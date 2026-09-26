@@ -14,6 +14,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
+import { index as auditLogsIndex } from '@/routes/audit-logs';
+
 interface ActivityProperties {
     attributes?: Record<string, unknown>;
     old?: Record<string, unknown>;
@@ -65,16 +67,22 @@ const localFilters = ref<Filters>({ ...props.filters });
 
 function applyFilters() {
     const params: Record<string, string> = {};
-    if (localFilters.value.causer_id) params.causer_id = localFilters.value.causer_id;
-    if (localFilters.value.subject_type) params.subject_type = localFilters.value.subject_type;
+    if (localFilters.value.causer_id)
+        params.causer_id = localFilters.value.causer_id;
+    if (localFilters.value.subject_type)
+        params.subject_type = localFilters.value.subject_type;
     if (localFilters.value.from) params.from = localFilters.value.from;
     if (localFilters.value.to) params.to = localFilters.value.to;
-    router.get(route('audit-logs.index'), params, { preserveState: true });
+    router.get(
+        auditLogsIndex.url({ query: params }),
+        {},
+        { preserveState: true },
+    );
 }
 
 function resetFilters() {
     localFilters.value = {};
-    router.get(route('audit-logs.index'), {}, { preserveState: true });
+    router.get(auditLogsIndex.url(), {}, { preserveState: true });
 }
 
 function shortModelName(fqcn: string | null): string {
@@ -248,21 +256,23 @@ watch(
                                             ]
                                         }}
                                     </span>
-                                    <span class="text-green-600 dark:text-green-400">
+                                    <span
+                                        class="text-green-600 dark:text-green-400"
+                                    >
                                         {{ val }}
                                     </span>
                                 </div>
                             </div>
-                            <span
-                                v-else
-                                class="text-xs text-muted-foreground"
-                            >
+                            <span v-else class="text-xs text-muted-foreground">
                                 {{ activity.description }}
                             </span>
                         </TableCell>
                     </TableRow>
                     <TableRow v-if="activities.data.length === 0">
-                        <TableCell :colspan="5" class="py-8 text-center text-muted-foreground">
+                        <TableCell
+                            :colspan="5"
+                            class="py-8 text-center text-muted-foreground"
+                        >
                             Tidak ada aktivitas ditemukan.
                         </TableCell>
                     </TableRow>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Sekolah;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -35,11 +36,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'roles' => $user?->getRoleNames() ?? [],
+                'permissions' => $user?->getAllPermissions()->pluck('name') ?? [],
+                'sekolah_aktif_id' => session('sekolah_id'),
+                'daftar_sekolah' => ($user && $user->sekolah_id === null)
+                    ? Sekolah::orderBy('npsn')->get(['id', 'nama', 'npsn'])->toArray()
+                    : [],
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

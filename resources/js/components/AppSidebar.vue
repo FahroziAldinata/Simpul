@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import {
+    BookOpen,
+    Calendar,
+    ClipboardCheck,
+    FolderGit2,
+    GraduationCap,
+    LayoutGrid,
+    ScrollText,
+    Users,
+} from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -15,15 +25,73 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index as auditLogsIndex } from '@/routes/audit-logs';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+interface SimpulAuth {
+    roles?: string[];
+    permissions?: string[];
+}
+
+const page = usePage();
+
+function can(permission: string): boolean {
+    const auth = (page.props.auth ?? {}) as SimpulAuth;
+    if (auth.roles?.includes('super_admin')) return true;
+    return auth.permissions?.includes(permission) ?? false;
+}
+
+const mainNavItems = computed<NavItem[]>(() => {
+    const items: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+
+    if (can('pegawai.view')) {
+        items.push({
+            title: 'Kepegawaian',
+            href: '#',
+            icon: Users,
+        });
+    }
+
+    if (can('siswa.view')) {
+        items.push({
+            title: 'Kesiswaan',
+            href: '#',
+            icon: GraduationCap,
+        });
+    }
+
+    if (can('jadwal.view')) {
+        items.push({
+            title: 'Jadwal',
+            href: '#',
+            icon: Calendar,
+        });
+    }
+
+    if (can('absensi.view')) {
+        items.push({
+            title: 'Presensi',
+            href: '#',
+            icon: ClipboardCheck,
+        });
+    }
+
+    if (can('audit_log.view')) {
+        items.push({
+            title: 'Audit Log',
+            href: auditLogsIndex(),
+            icon: ScrollText,
+        });
+    }
+
+    return items;
+});
 
 const footerNavItems: NavItem[] = [
     {
