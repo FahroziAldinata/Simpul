@@ -6,6 +6,7 @@ use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PeriodeAktifController;
+use App\Http\Controllers\RombelController;
 use App\Http\Controllers\RuangController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
@@ -91,6 +92,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('mata-pelajaran/{mataPelajaran}', [MataPelajaranController::class, 'destroy'])
         ->middleware('permission:data_induk.delete')
         ->name('mata-pelajaran.destroy');
+
+    // Data Induk: Rombel / Rombongan Belajar
+    Route::get('rombel', [RombelController::class, 'index'])->name('rombel.index');
+    Route::post('rombel', [RombelController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('rombel.store');
+    Route::put('rombel/{rombel}', [RombelController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('rombel.update');
+    Route::delete('rombel/{rombel}', [RombelController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('rombel.destroy');
 });
 
 require __DIR__.'/settings.php';
