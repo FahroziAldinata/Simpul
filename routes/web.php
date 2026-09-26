@@ -5,6 +5,7 @@ use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
+use App\Http\Controllers\TahunAjaranController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -34,6 +35,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('kalender/jam-kerja', [KalenderController::class, 'updateJamKerja'])
         ->middleware('permission:data_induk.update')
         ->name('kalender.jam-kerja.update');
+
+    // Data Induk: Tahun Ajaran & Semester
+    Route::get('tahun-ajaran', [TahunAjaranController::class, 'index'])->name('tahun-ajaran.index');
+    Route::post('tahun-ajaran', [TahunAjaranController::class, 'store'])
+        ->middleware('permission:data_induk.create')
+        ->name('tahun-ajaran.store');
+    Route::put('tahun-ajaran/{tahunAjaran}', [TahunAjaranController::class, 'update'])
+        ->middleware('permission:data_induk.update')
+        ->name('tahun-ajaran.update');
+    Route::delete('tahun-ajaran/{tahunAjaran}', [TahunAjaranController::class, 'destroy'])
+        ->middleware('permission:data_induk.delete')
+        ->name('tahun-ajaran.destroy');
+    Route::post('semester/{semester}/aktifkan', [TahunAjaranController::class, 'activateSemester'])
+        ->middleware('permission:data_induk.update')
+        ->name('semester.activate');
 });
 
 require __DIR__.'/settings.php';
