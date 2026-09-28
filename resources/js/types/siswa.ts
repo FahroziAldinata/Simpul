@@ -18,6 +18,19 @@ export interface AnggotaRombelItem {
     };
 }
 
+export interface BerkasItem {
+    id: string;
+    sekolah_id: string;
+    siswa_id: string;
+    jenis: 'foto' | 'akta' | 'kk' | 'ijazah';
+    file_path: string;
+    nama_file_asli?: string | null;
+    mime_type: string;
+    file_size_bytes: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface SiswaItem {
     id: string;
     sekolah_id: string;
@@ -34,6 +47,7 @@ export interface SiswaItem {
     is_data_lengkap?: boolean;
     wali?: WaliItem[];
     anggota_rombel_aktif?: AnggotaRombelItem | null;
+    berkas?: BerkasItem[];
     created_at?: string;
     [key: string]: unknown;
 }

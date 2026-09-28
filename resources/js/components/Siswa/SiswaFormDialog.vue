@@ -3,11 +3,16 @@ import { useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertCircle,
     CheckCircle2,
+    ExternalLink,
     FileText,
     GraduationCap,
     Home,
+    Image,
+    Info,
     Loader2,
     Save,
+    Trash2,
+    Upload,
     User,
     Users,
 } from '@lucide/vue';
@@ -33,7 +38,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useAutosave } from '@/composables/useAutosave';
-import type { RombelOption, SemesterInfo, SiswaItem } from '@/types/siswa';
+import type { BerkasItem, RombelOption, SemesterInfo, SiswaItem } from '@/types/siswa';
 
 const props = defineProps<{
     open: boolean;
@@ -248,15 +253,159 @@ watch(
                     { jenis_wali: 'ibu', nama: '', hubungan: 'Ibu Kandung', pekerjaan: '', no_hp: '', alamat: '' },
                 ];
             }
+
+            // Berkas list
+            localBerkas.value = {};
+            if (val.berkas && Array.isArray(val.berkas)) {
+                val.berkas.forEach((b: BerkasItem) => {
+                    localBerkas.value[b.jenis] = b;
+                });
+            }
         } else {
             form.reset();
             form.clearErrors();
+            localBerkas.value = {};
         }
         currentStep.value = 1;
         nisnCheckStatus.value = 'idle';
+        berkasErrors.value = {};
     },
     { immediate: true }
 );
+
+// Berkas Digital State & Methods
+const localBerkas = ref<Record<string, BerkasItem>>({});
+const uploadingType = ref<string | null>(null);
+const berkasErrors = ref<Record<string, string>>({});
+const actionLoading = ref<string | null>(null);
+
+const berkasTypes = [
+    {
+        key: 'foto' as const,
+        label: 'Pas Foto Siswa (3x4)',
+        desc: 'Digunakan untuk kartu digital siswa. Wajib file gambar JPG atau PNG (maks 2 MB).',
+        accept: '.jpg,.jpeg,.png',
+        icon: Image,
+    },
+    {
+        key: 'akta' as const,
+        label: 'Akta Kelahiran',
+        desc: 'Salinan resmi akta kelahiran. Format JPG, PNG, atau PDF (maks 2 MB).',
+        accept: '.jpg,.jpeg,.png,.pdf',
+        icon: FileText,
+    },
+    {
+        key: 'kk' as const,
+        label: 'Kartu Keluarga (KK)',
+        desc: 'Salinan kartu keluarga terbaru. Format JPG, PNG, atau PDF (maks 2 MB).',
+        accept: '.jpg,.jpeg,.png,.pdf',
+        icon: FileText,
+    },
+    {
+        key: 'ijazah' as const,
+        label: 'Ijazah / SKL',
+        desc: 'Ijazah jenjang sebelumnya atau Surat Keterangan Lulus. Format JPG, PNG, atau PDF (maks 2 MB).',
+        accept: '.jpg,.jpeg,.png,.pdf',
+        icon: GraduationCap,
+    },
+];
+
+function formatBytes(bytes?: number): string {
+    if (!bytes || bytes <= 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+async function uploadBerkas(jenis: string, event: Event) {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (!file || !props.siswa) return;
+
+    uploadingType.value = jenis;
+    berkasErrors.value[jenis] = '';
+
+    const formData = new FormData();
+    formData.append('jenis', jenis);
+    formData.append('berkas', file);
+
+    try {
+        const response = await fetch(`/siswa/${props.siswa.id}/berkas`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': getXsrfToken(),
+                'Accept': 'application/json',
+            },
+            body: formData,
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localBerkas.value[jenis] = data.berkas;
+            emit('success');
+        } else {
+            const err = await response.json();
+            berkasErrors.value[jenis] = err.errors?.berkas?.[0] || err.message || 'Gagal mengunggah berkas.';
+        }
+    } catch {
+        berkasErrors.value[jenis] = 'Terjadi kesalahan saat mengunggah berkas.';
+    } finally {
+        uploadingType.value = null;
+        target.value = '';
+    }
+}
+
+async function viewBerkas(jenis: string) {
+    if (!props.siswa) return;
+    actionLoading.value = `view_${jenis}`;
+    try {
+        const response = await fetch(`/siswa/${props.siswa.id}/berkas/${jenis}/url?json=1`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            },
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.url) {
+                window.open(data.url, '_blank');
+            }
+        } else {
+            alert('Tidak dapat memuat berkas atau berkas telah kedaluwarsa.');
+        }
+    } catch {
+        alert('Gagal mengambil URL berkas.');
+    } finally {
+        actionLoading.value = null;
+    }
+}
+
+async function deleteBerkas(jenis: string) {
+    if (!props.siswa || !confirm('Hapus berkas ini?')) return;
+    actionLoading.value = `delete_${jenis}`;
+    try {
+        const response = await fetch(`/siswa/${props.siswa.id}/berkas/${jenis}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-XSRF-TOKEN': getXsrfToken(),
+                'Accept': 'application/json',
+            },
+        });
+        if (response.ok) {
+            delete localBerkas.value[jenis];
+            emit('success');
+        } else {
+            alert('Gagal menghapus berkas.');
+        }
+    } catch {
+        alert('Terjadi kesalahan saat menghapus berkas.');
+    } finally {
+        actionLoading.value = null;
+    }
+}
 
 function addWali() {
     form.wali.push({
@@ -674,20 +823,130 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- STEP 4: BERKAS DIGITAL (PLACEHOLDER) -->
+                <!-- STEP 4: BERKAS DIGITAL (T-06.01) -->
                 <div v-show="currentStep === 4" class="space-y-4">
-                    <Alert class="border-blue-500/30 bg-blue-500/10 text-blue-800 dark:text-blue-300">
-                        <FileText class="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <AlertTitle class="text-xs font-semibold">Penyimpanan Berkas Digital (MinIO)</AlertTitle>
-                        <AlertDescription class="text-xs leading-relaxed">
-                            Fitur upload berkas siswa (Kartu Keluarga, Akta Kelahiran, Ijazah, KIP) akan diintegrasikan dengan object storage MinIO pada rilis selanjutnya. Saat ini belum ada berkas yang terunggah.
+                    <!-- Info callout for CREATE mode -->
+                    <Alert v-if="!isEdit" class="border-blue-500/30 bg-blue-500/10 text-blue-900 dark:text-blue-200">
+                        <Info class="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <AlertTitle class="text-xs font-semibold">Pengunggahan Berkas Tersedia Setelah Penyimpanan Siswa</AlertTitle>
+                        <AlertDescription class="text-xs leading-relaxed mt-1">
+                            Untuk menjaga integritas referensi berkas di object storage MinIO, simpan data siswa terlebih dahulu melalui tombol Simpan di bawah. Setelah data tersimpan, berkas pas foto, akta, KK, dan ijazah dapat diunggah melalui formulir edit.
                         </AlertDescription>
                     </Alert>
 
-                    <div class="rounded-lg border border-dashed p-8 text-center text-muted-foreground text-sm space-y-1">
-                        <FileText class="h-8 w-8 mx-auto text-muted-foreground/50 mb-2" />
-                        <p class="font-medium text-foreground">Belum ada berkas terunggah</p>
-                        <p class="text-xs">Tabel berkas telah dimigrasikan untuk kesiapan schema di backend.</p>
+                    <!-- EDIT mode: List of 4 Berkas Cards -->
+                    <div v-else class="space-y-3">
+                        <div class="flex items-center justify-between pb-1 border-b">
+                            <div>
+                                <h3 class="text-sm font-semibold text-foreground">Dokumen & Berkas Digital Siswa</h3>
+                                <p class="text-xs text-muted-foreground">Penyimpanan aman berbasis object storage MinIO dengan masa kedaluwarsa URL 5 menit.</p>
+                            </div>
+                            <div v-if="isWaliKelas" class="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded">
+                                Akses Hanya Baca (Wali Kelas)
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div
+                                v-for="item in berkasTypes"
+                                :key="item.key"
+                                class="rounded-lg border p-3.5 space-y-2.5 bg-card flex flex-col justify-between"
+                            >
+                                <div class="space-y-1.5">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex items-center gap-2">
+                                            <component :is="item.icon" class="h-4 w-4 text-primary shrink-0" />
+                                            <span class="text-xs font-semibold text-foreground">{{ item.label }}</span>
+                                        </div>
+                                        <Badge
+                                            v-if="localBerkas[item.key]"
+                                            variant="secondary"
+                                            class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0 text-[10px] px-1.5 py-0 h-4"
+                                        >
+                                            Terunggah
+                                        </Badge>
+                                        <Badge
+                                            v-else
+                                            variant="outline"
+                                            class="text-muted-foreground text-[10px] px-1.5 py-0 h-4"
+                                        >
+                                            Belum Ada
+                                        </Badge>
+                                    </div>
+                                    <p class="text-[11px] text-muted-foreground leading-normal">{{ item.desc }}</p>
+
+                                    <!-- Uploaded metadata info -->
+                                    <div v-if="localBerkas[item.key]" class="bg-muted/50 rounded p-2 text-[11px] space-y-0.5 font-mono">
+                                        <p class="truncate text-foreground font-medium" :title="localBerkas[item.key]?.nama_file_asli ?? ''">
+                                            {{ localBerkas[item.key]?.nama_file_asli || 'Berkas Siswa' }}
+                                        </p>
+                                        <p class="text-muted-foreground text-[10px]">
+                                            Ukuran: {{ formatBytes(localBerkas[item.key]?.file_size_bytes) }} • {{ localBerkas[item.key]?.mime_type }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="pt-2 border-t flex items-center justify-between gap-2">
+                                    <!-- View/Download button if uploaded -->
+                                    <Button
+                                        v-if="localBerkas[item.key]"
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        class="h-7 text-xs px-2.5 gap-1.5"
+                                        :disabled="actionLoading === `view_${item.key}`"
+                                        @click="viewBerkas(item.key)"
+                                    >
+                                        <Loader2 v-if="actionLoading === `view_${item.key}`" class="h-3 w-3 animate-spin" />
+                                        <ExternalLink v-else class="h-3 w-3" />
+                                        <span>Lihat / Unduh</span>
+                                    </Button>
+
+                                    <div v-if="!isWaliKelas" class="flex items-center gap-1.5 ml-auto">
+                                        <!-- Replace / Upload button -->
+                                        <label
+                                            class="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-7 px-2.5 cursor-pointer gap-1.5"
+                                            :class="{'opacity-50 pointer-events-none': uploadingType === item.key}"
+                                        >
+                                            <Loader2 v-if="uploadingType === item.key" class="h-3 w-3 animate-spin" />
+                                            <Upload v-else class="h-3 w-3" />
+                                            <span>{{ localBerkas[item.key] ? 'Ganti' : 'Unggah' }}</span>
+                                            <input
+                                                type="file"
+                                                class="hidden"
+                                                :accept="item.accept"
+                                                :disabled="uploadingType === item.key"
+                                                @change="uploadBerkas(item.key, $event)"
+                                            />
+                                        </label>
+
+                                        <!-- Delete button if uploaded -->
+                                        <Button
+                                            v-if="localBerkas[item.key]"
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            class="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                            :disabled="actionLoading === `delete_${item.key}`"
+                                            @click="deleteBerkas(item.key)"
+                                            title="Hapus berkas ini"
+                                        >
+                                            <Loader2 v-if="actionLoading === `delete_${item.key}`" class="h-3 w-3 animate-spin" />
+                                            <Trash2 v-else class="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                    <div v-else-if="!localBerkas[item.key]" class="text-[11px] text-muted-foreground italic ml-auto">
+                                        Belum diunggah
+                                    </div>
+                                </div>
+
+                                <!-- Error Alert if any -->
+                                <p v-if="berkasErrors[item.key]" class="text-[11px] text-destructive font-medium mt-1">
+                                    {{ berkasErrors[item.key] }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
