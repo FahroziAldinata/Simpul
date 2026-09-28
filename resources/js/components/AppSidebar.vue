@@ -66,7 +66,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (can('siswa.view')) {
         items.push({
             title: 'Kesiswaan',
-            href: '#',
+            href: '/siswa',
             icon: GraduationCap,
         });
     }
