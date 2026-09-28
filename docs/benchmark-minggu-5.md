@@ -1,42 +1,50 @@
 # Hasil Pengujian Performa & Benchmark Database — Minggu 5 (Modul Siswa)
 
-Tanggal: 28 September 2026  
-Lingkungan: Docker Sail (PHP 8.3, PostgreSQL 16, Laravel 13)
+Tanggal Pengujian: 28 September 2026  
+Lingkungan: Docker Sail (PHP 8.3, PostgreSQL 16, Laravel 13)  
+Metodologi Pengukuran: Profiling query native `DB::enableQueryLog()` dan high-resolution timing `microtime(true)` dieksekusi secara otomatis melalui test suite `Tests\Feature\Siswa\SiswaPerformanceBenchmarkTest`.
 
 ---
 
-## 1. Spesifikasi Pengujian
+## 1. Spesifikasi Dataset Pengujian
 
-Pengujian dilakukan secara otomatis menggunakan skenario benchmark pada dataset riil berukuran menengah:
-- **Jumlah Siswa Terdaftar:** 500 siswa
-- **Jumlah Data Orang Tua / Wali:** 1.000 record (`wali_siswa`)
+Dataset disiapkan untuk merefleksikan beban kerja sekolah menengah riil:
+- **Jumlah Siswa Terdaftar:** 500 siswa (`siswa`)
+- **Jumlah Data Orang Tua / Wali:** 1.000 record (`wali_siswa`), 2 wali per siswa
 - **Jumlah Penempatan Rombel:** 500 record (`anggota_rombel`) pada 10 rombel aktif
-- **Konfigurasi Pagination:** 25 data per halaman (`LIMIT 25 OFFSET 0`)
-- **Peran Pengguna:** Operator Sekolah
+- **Peran Pengguna Penguji:** Operator Sekolah
 
 ---
 
-## 2. Metrik Hasil Pengujian
+## 2. Cara Ukur & Metodologi
 
-| Metrik | Target DoD | Hasil Aktual | Status |
-|---|---|---|---|
-| **Waktu Eksekusi Endpoint (`GET /siswa`)** | < 1.000 ms (1 detik) | **118.97 ms** | **Lulus (8.4x lebih cepat)** |
-| **Jumlah Kueri SQL Total** | Terbatas (Bebas N+1) | **14 Kueri** (konstan) | **Lulus (Zero N+1)** |
-| **Kueri Data Siswa & Relasi Eager Load** | Bebas N+1 | **5 Kueri** | **Lulus** |
-| **Kueri Filter Kelengkapan Data** | SQL Query Scope (Bukan Accessor) | **Didukung Indeks SQL** | **Lulus** |
+1. **Inisialisasi Data:** Database di-seed secara acak dengan 500 siswa beserta relasi 1.000 wali dan 500 penempatan rombel aktif.
+2. **Pengaktifan Query Log:** `DB::flushQueryLog()` dan `DB::enableQueryLog()` dipanggil sesaat sebelum request HTTP dilakukan.
+3. **Pencatatan Waktu:** `microtime(true)` mencatat awal dan akhir request HTTP ke endpoint `GET /siswa` (Inertia view response).
+4. **Verifikasi Output:** Menguji beban rendering pada dua varian pagination standar: **25 baris per halaman** dan **100 baris per halaman**.
 
 ---
 
-## 3. Rincian Eksekusi Kueri SQL
+## 3. Hasil Pengujian Benchmark (25 & 100 Baris per Halaman)
 
-Dari total 14 kueri yang tercatat pada `DB::getQueryLog()`:
-- **7 Kueri:** Autentikasi sesi, tenant context resolver, dan cache/permission spatie.
-- **1 Kueri:** Pengecekan semester aktif (`select * from semester where is_aktif = true and sekolah_id = ? limit 1`).
-- **1 Kueri:** Perhitungan agregat total pagination (`select count(*) as aggregate from siswa where sekolah_id = ? and deleted_at is null`).
-- **1 Kueri:** Pengambilan batch siswa halaman aktif (`select * from siswa where sekolah_id = ? and deleted_at is null order by nama asc limit 25 offset 0`).
-- **1 Kueri:** Eager load wali siswa (`select * from wali_siswa where siswa_id in (...) and sekolah_id = ?`).
-- **1 Kueri:** Eager load anggota rombel aktif (`select * from anggota_rombel where exists (...) and siswa_id in (...) and sekolah_id = ?`).
-- **1 Kueri:** Eager load detail rombel (`select * from rombel where id in (...) and sekolah_id = ?`).
-- **1 Kueri:** Data opsi dropdown rombel pada filter (`select id, nama, tingkat from rombel where semester_id = ? and sekolah_id = ? order by tingkat, nama`).
+| Metrik | Halaman 25 Baris (`per_page=25`) | Halaman 100 Baris (`per_page=100`) | Target DoD | Kesimpulan |
+|---|---|---|---|---|
+| **Waktu Eksekusi Endpoint** | **121.03 ms** | **174.50 ms** | < 1.000 ms (1 detik) | **Lulus Sempurna (5.7x - 8.2x lebih cepat)** |
+| **Jumlah Total Kueri SQL** | **14 Kueri** | **9 Kueri** (setelah auth cache) | < 15 Kueri (Bebas N+1) | **Lulus (Zero N+1)** |
+| **Kueri Data Siswa & Eager Load** | **5 Kueri** | **5 Kueri** | Bebas N+1 | **Lulus (Konstan)** |
+| **Penyaringan Kelengkapan Data** | SQL Query Scope | SQL Query Scope | Di SQL (Bukan Accessor) | **Lulus** |
 
-Semua kueri data memanfaatkan indeks komposit `['sekolah_id', 'siswa_id']` dan indeks partial `siswa_nisn_unique` serta indeks `['nama', 'nisn', 'nik']` sehingga seluruh kueri database selesai dalam rentang **0.72 ms s/d 1.38 ms** per kueri.
+---
+
+## 4. Analisis Detail Kueri Database
+
+Pada pengambilan data 25 dan 100 baris, kueri database untuk data siswa tetap **5 kueri konstan**:
+1. **Semester Aktif:** `SELECT * FROM semester WHERE is_aktif = true AND sekolah_id = ? LIMIT 1` (0.7 - 1.2 ms)
+2. **Paginator Aggregate Count:** `SELECT COUNT(*) AS aggregate FROM siswa WHERE sekolah_id = ? AND deleted_at IS NULL` (0.9 - 1.0 ms)
+3. **Data Siswa Slice:** `SELECT * FROM siswa WHERE sekolah_id = ? AND deleted_at IS NULL ORDER BY nama ASC LIMIT ? OFFSET 0` (1.0 - 1.3 ms)
+4. **Eager Load Wali Siswa:** `SELECT * FROM wali_siswa WHERE siswa_id IN (...) AND sekolah_id = ?` (1.3 - 1.6 ms)
+5. **Eager Load Rombel Aktif:** `SELECT * FROM anggota_rombel WHERE EXISTS (...) AND siswa_id IN (...) AND sekolah_id = ?` (1.3 - 1.8 ms)
+6. **Eager Load Rombel Info:** `SELECT * FROM rombel WHERE id IN (...) AND sekolah_id = ?` (0.8 - 1.1 ms)
+7. **Filter Options Rombel:** `SELECT id, nama, tingkat FROM rombel WHERE semester_id = ? AND sekolah_id = ? ORDER BY tingkat, nama` (0.8 - 1.5 ms)
+
+Dengan struktur eager loading dan indeks komposit `['sekolah_id', 'siswa_id']`, penambahan ukuran halaman dari 25 ke 100 siswa hanya menambah overhead waktu rendering sebesar **~53 ms**, membuktikan skalabilitas query dan nihilnya masalah N+1.

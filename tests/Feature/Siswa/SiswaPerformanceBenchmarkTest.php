@@ -111,34 +111,50 @@ class SiswaPerformanceBenchmarkTest extends TestCase
         ]);
         $operator->assignRole($operatorRole);
 
-        // 5. Measure query count & duration
+        // 5. Measure query count & duration for 25 per page
         DB::flushQueryLog();
         DB::enableQueryLog();
 
-        $startTime = microtime(true);
-
-        $response = $this->actingAs($operator)
+        $startTime25 = microtime(true);
+        $response25 = $this->actingAs($operator)
             ->withSession(['sekolah_id' => $sekolah->id])
             ->get(route('siswa.index', ['per_page' => 25]));
+        $durationMs25 = (microtime(true) - $startTime25) * 1000;
+        $queries25 = DB::getQueryLog();
+        $queryCount25 = count($queries25);
+        $response25->assertOk();
 
-        $durationMs = (microtime(true) - $startTime) * 1000;
-        $queries = DB::getQueryLog();
-        $queryCount = count($queries);
-
-        $response->assertOk();
+        // 6. Measure query count & duration for 100 per page
+        DB::flushQueryLog();
+        $startTime100 = microtime(true);
+        $response100 = $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->get(route('siswa.index', ['per_page' => 100]));
+        $durationMs100 = (microtime(true) - $startTime100) * 1000;
+        $queries100 = DB::getQueryLog();
+        $queryCount100 = count($queries100);
+        $response100->assertOk();
 
         // Save benchmark log data
         $benchmarkSummary = [
+            'methodology' => 'DB::getQueryLog() and microtime() on seeded PostgreSQL database with 500 students, 1000 guardians, 10 classes',
             'total_students_in_database' => 500,
             'total_guardians' => 1000,
             'total_rombel_memberships' => 500,
-            'page_size' => 25,
-            'query_count' => $queryCount,
-            'duration_ms' => round($durationMs, 2),
-            'queries' => array_map(fn ($q) => [
+            'benchmark_25_per_page' => [
+                'page_size' => 25,
+                'query_count' => $queryCount25,
+                'duration_ms' => round($durationMs25, 2),
+            ],
+            'benchmark_100_per_page' => [
+                'page_size' => 100,
+                'query_count' => $queryCount100,
+                'duration_ms' => round($durationMs100, 2),
+            ],
+            'queries_sample_25' => array_map(fn ($q) => [
                 'sql' => $q['query'],
                 'time_ms' => $q['time'],
-            ], $queries),
+            ], $queries25),
         ];
 
         file_put_contents(
@@ -146,13 +162,11 @@ class SiswaPerformanceBenchmarkTest extends TestCase
             json_encode($benchmarkSummary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
 
-        // 6. Assertions
-        // Query count must be <= 15 (Zero N+1 confirmed, constant query count)
-        $this->assertLessThanOrEqual(15, $queryCount, "Query count {$queryCount} exceeds allowed threshold. Possible N+1 detected.");
+        // Assertions
+        $this->assertLessThanOrEqual(15, $queryCount25, "Query count for 25/page ({$queryCount25}) exceeds threshold.");
+        $this->assertLessThan(1000, $durationMs25, "Duration for 25/page ({$durationMs25}ms) exceeds 1000ms.");
 
-        file_put_contents(
-            base_path('docs/benchmark-minggu-5.json'),
-            json_encode($benchmarkSummary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
-        );
+        $this->assertLessThanOrEqual(15, $queryCount100, "Query count for 100/page ({$queryCount100}) exceeds threshold.");
+        $this->assertLessThan(1000, $durationMs100, "Duration for 100/page ({$durationMs100}ms) exceeds 1000ms.");
     }
 }
