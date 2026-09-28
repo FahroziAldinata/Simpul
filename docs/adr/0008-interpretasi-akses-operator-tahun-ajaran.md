@@ -1,8 +1,8 @@
-# ADR-0004: Interpretasi Hak Akses Operator pada Modul Tahun Ajaran
+# ADR-0008: Interpretasi Hak Akses Operator pada Modul Tahun Ajaran
 
 ## Status
 
-Diusulkan / Menunggu Keputusan Final User (Proposed)
+Disetujui (Accepted)
 
 ## Konteks
 
