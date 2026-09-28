@@ -130,6 +130,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('siswa.check-nisn');
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');
+    Route::get('siswa/{siswa}', [SiswaController::class, 'show'])->name('siswa.show');
+    Route::get('siswa/{siswa}/edit', [SiswaController::class, 'edit'])->name('siswa.edit');
     Route::put('siswa/{siswa}', [SiswaController::class, 'update'])->name('siswa.update');
     Route::delete('siswa/{siswa}', [SiswaController::class, 'destroy'])->name('siswa.destroy');
 });

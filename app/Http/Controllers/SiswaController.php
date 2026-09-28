@@ -204,6 +204,34 @@ class SiswaController extends Controller
     }
 
     /**
+     * Display the specified student.
+     */
+    public function show(Siswa $siswa): Response
+    {
+        Gate::authorize('view', $siswa);
+
+        $siswa->load(['wali', 'anggotaRombelAktif.rombel']);
+
+        return Inertia::render('siswa/Index', [
+            'selectedSiswa' => $siswa,
+        ]);
+    }
+
+    /**
+     * Show the form for editing the specified student.
+     */
+    public function edit(Siswa $siswa): Response
+    {
+        Gate::authorize('update', $siswa);
+
+        $siswa->load(['wali', 'anggotaRombelAktif.rombel']);
+
+        return Inertia::render('siswa/Index', [
+            'selectedSiswa' => $siswa,
+        ]);
+    }
+
+    /**
      * Update the specified student in storage.
      */
     public function update(Request $request, Siswa $siswa): RedirectResponse
