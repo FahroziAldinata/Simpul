@@ -3,13 +3,7 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -88,25 +82,25 @@ const editForm = useForm({
     is_aktif: true,
 });
 
-function applyFilter() {
+function applyFilter(kelompok = props.filters.kelompok, bobot = props.filters.bobot) {
     router.get(
         '/mata-pelajaran',
         {
-            kelompok: props.filters.kelompok,
-            bobot: props.filters.bobot,
+            kelompok,
+            bobot,
         },
         { preserveState: true, preserveScroll: true },
     );
 }
 
 function onKelompokFilter(event: Event) {
-    props.filters.kelompok = (event.target as HTMLSelectElement).value;
-    applyFilter();
+    const val = (event.target as HTMLSelectElement).value;
+    applyFilter(val, props.filters.bobot);
 }
 
 function onBobotFilter(event: Event) {
-    props.filters.bobot = (event.target as HTMLSelectElement).value;
-    applyFilter();
+    const val = (event.target as HTMLSelectElement).value;
+    applyFilter(props.filters.kelompok, val);
 }
 
 function submitCreate() {

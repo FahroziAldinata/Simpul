@@ -78,6 +78,7 @@ class RoleAndPermissionSeeder extends Seeder
         // 7 Peran sesuai Matriks PRD Bagian 4.2
         $roles = [
             'super_admin' => $permissions, // Super Admin memiliki semua permission (dan bypass di Gate::before)
+            // Operator mendapat CRU Tahun Ajaran (tanpa rollover). Baris 'Tahun Ajaran (rollover)' di PRD 4.2 ditafsirkan sebagai aksi rollover saja, yang baru diimplementasikan kemudian. Keputusan final ada di user.
             'operator' => [
                 'data_induk.view', 'data_induk.create', 'data_induk.update',
                 'siswa.view', 'siswa.create', 'siswa.update', 'siswa.delete',

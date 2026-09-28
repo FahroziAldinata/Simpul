@@ -145,7 +145,7 @@ function deleteHariLibur(id: string) {
                                     </TableHeader>
                                     <TableBody>
                                         <TableRow
-                                            v-for="(item, idx) in jamKerjaForm.hari"
+                                            v-for="item in jamKerjaForm.hari"
                                             :key="item.hari"
                                         >
                                             <TableCell class="font-medium">

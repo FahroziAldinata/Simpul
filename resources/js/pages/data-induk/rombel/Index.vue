@@ -79,7 +79,7 @@ interface RombelItem {
     is_aktif: boolean;
 }
 
-const props = defineProps<{
+defineProps<{
     rombel: RombelItem[];
     currentSemester: SemesterInfo | null;
     waliKelasList: WaliKelasOption[];

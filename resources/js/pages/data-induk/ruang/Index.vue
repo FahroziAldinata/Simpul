@@ -3,13 +3,7 @@ import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
@@ -41,7 +35,7 @@ interface RuangItem {
     is_aktif: boolean;
 }
 
-const props = defineProps<{
+defineProps<{
     ruang: RuangItem[];
     kategoriOptions: string[];
     filters: {

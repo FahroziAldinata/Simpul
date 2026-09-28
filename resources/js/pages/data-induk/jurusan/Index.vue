@@ -40,7 +40,7 @@ interface JurusanItem {
     is_aktif: boolean;
 }
 
-const props = defineProps<{
+defineProps<{
     jurusan: JurusanItem[];
     isApplicable: boolean;
     jenjang: string;

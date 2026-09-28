@@ -40,7 +40,7 @@ interface TahunAjaranItem {
     semester: SemesterItem[];
 }
 
-const props = defineProps<{
+defineProps<{
     tahunAjaran: TahunAjaranItem[];
     canManage: boolean;
 }>();
