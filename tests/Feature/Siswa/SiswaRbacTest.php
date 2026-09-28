@@ -245,6 +245,23 @@ class SiswaRbacTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_wali_kelas_cannot_update_wali_of_student_in_other_rombel_receives_403(): void
+    {
+        $payload = [
+            'wali' => [
+                [
+                    'hubungan' => 'ayah',
+                    'nama' => 'Ayah Ganti Ilegal',
+                ],
+            ],
+        ];
+
+        $this->actingAs($this->userWaliKelas)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->put(route('siswa.update', $this->siswaRombelB->id), $payload)
+            ->assertForbidden();
+    }
+
     public function test_wali_kelas_cannot_delete_student_receives_403(): void
     {
         $this->actingAs($this->userWaliKelas)
