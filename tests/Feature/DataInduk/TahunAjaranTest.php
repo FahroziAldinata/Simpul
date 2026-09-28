@@ -165,7 +165,7 @@ class TahunAjaranTest extends TestCase
         $this->assertTrue($semGenap->is_aktif);
     }
 
-    public function test_cannot_delete_active_tahun_ajaran(): void
+    public function test_operator_cannot_delete_tahun_ajaran(): void
     {
         $sekolah = Sekolah::factory()->create();
 
@@ -175,10 +175,31 @@ class TahunAjaranTest extends TestCase
 
         $ta = TahunAjaran::factory()->create([
             'sekolah_id' => $sekolah->id,
+            'is_aktif' => false,
+        ]);
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('tahun-ajaran.destroy', $ta->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('tahun_ajaran', ['id' => $ta->id]);
+    }
+
+    public function test_cannot_delete_active_tahun_ajaran(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $ta = TahunAjaran::factory()->create([
+            'sekolah_id' => $sekolah->id,
             'is_aktif' => true,
         ]);
 
-        $response = $this->actingAs($operator)
+        $response = $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolah->id])
             ->delete(route('tahun-ajaran.destroy', $ta->id));
 
@@ -191,16 +212,16 @@ class TahunAjaranTest extends TestCase
         $sekolahA = Sekolah::factory()->create();
         $sekolahB = Sekolah::factory()->create();
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $taB = TahunAjaran::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'is_aktif' => false,
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('tahun-ajaran.destroy', $taB->id))
             ->assertNotFound();

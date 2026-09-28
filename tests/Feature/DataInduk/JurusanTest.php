@@ -94,21 +94,57 @@ class JurusanTest extends TestCase
         $response->assertStatus(422);
     }
 
+    public function test_operator_cannot_delete_jurusan(): void
+    {
+        $sekolah = Sekolah::factory()->create(['jenjang' => 'smk']);
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $jurusan = Jurusan::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('jurusan.destroy', $jurusan->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('jurusan', ['id' => $jurusan->id]);
+    }
+
+    public function test_super_admin_can_delete_jurusan(): void
+    {
+        $sekolah = Sekolah::factory()->create(['jenjang' => 'smk']);
+
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $jurusan = Jurusan::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('jurusan.destroy', $jurusan->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('jurusan', ['id' => $jurusan->id]);
+    }
+
     public function test_tenant_isolation_404_when_deleting_other_school_jurusan(): void
     {
         $sekolahA = Sekolah::factory()->create(['jenjang' => 'smk']);
         $sekolahB = Sekolah::factory()->create(['jenjang' => 'smk']);
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $jurusanB = Jurusan::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'kode' => 'AKL',
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('jurusan.destroy', $jurusanB->id))
             ->assertNotFound();

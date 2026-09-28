@@ -130,21 +130,57 @@ class AlokasiJamMapelTest extends TestCase
         $response->assertSessionHasErrors('mata_pelajaran_id');
     }
 
+    public function test_operator_cannot_delete_alokasi(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $alokasi = AlokasiJamMapel::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('alokasi-jam.destroy', $alokasi->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('alokasi_jam_mapel', ['id' => $alokasi->id]);
+    }
+
+    public function test_super_admin_can_delete_alokasi(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $alokasi = AlokasiJamMapel::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('alokasi-jam.destroy', $alokasi->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('alokasi_jam_mapel', ['id' => $alokasi->id]);
+    }
+
     public function test_tenant_isolation_404_when_deleting_other_school_alokasi(): void
     {
         $sekolahA = Sekolah::factory()->create();
         $sekolahB = Sekolah::factory()->create();
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $alokasiB = AlokasiJamMapel::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'jam_per_minggu' => 2,
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('alokasi-jam.destroy', $alokasiB->id))
             ->assertNotFound();

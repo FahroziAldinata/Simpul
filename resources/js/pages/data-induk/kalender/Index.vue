@@ -42,6 +42,7 @@ const props = defineProps<{
     hariLibur: HariLiburItem[];
     jamKerja: JamKerjaItem[];
     canManage: boolean;
+    canDelete: boolean;
     totalSlotMingguan: number;
 }>();
 
@@ -301,7 +302,7 @@ function deleteHariLibur(id: string) {
                                 <TableHead class="w-36">Selesai</TableHead>
                                 <TableHead class="w-32">Kategori</TableHead>
                                 <TableHead>Keterangan</TableHead>
-                                <TableHead v-if="canManage" class="w-20 text-right">
+                                <TableHead v-if="canDelete" class="w-20 text-right">
                                     Aksi
                                 </TableHead>
                             </TableRow>
@@ -323,7 +324,7 @@ function deleteHariLibur(id: string) {
                                     </Badge>
                                 </TableCell>
                                 <TableCell>{{ item.keterangan }}</TableCell>
-                                <TableCell v-if="canManage" class="text-right">
+                                <TableCell v-if="canDelete" class="text-right">
                                     <Button
                                         variant="destructive"
                                         size="sm"
@@ -336,7 +337,7 @@ function deleteHariLibur(id: string) {
                             </TableRow>
                             <TableRow v-if="hariLibur.length === 0">
                                 <TableCell
-                                    :colspan="canManage ? 5 : 4"
+                                    :colspan="canDelete ? 5 : 4"
                                     class="py-6 text-center text-sm text-muted-foreground"
                                 >
                                     Belum ada agenda hari libur.

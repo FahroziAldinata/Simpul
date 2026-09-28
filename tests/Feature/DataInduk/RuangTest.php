@@ -80,21 +80,57 @@ class RuangTest extends TestCase
         $response->assertSessionHasErrors('kode');
     }
 
+    public function test_operator_cannot_delete_ruang(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $ruang = Ruang::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('ruang.destroy', $ruang->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('ruang', ['id' => $ruang->id]);
+    }
+
+    public function test_super_admin_can_delete_ruang(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $ruang = Ruang::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('ruang.destroy', $ruang->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('ruang', ['id' => $ruang->id]);
+    }
+
     public function test_tenant_isolation_404_when_deleting_other_school_ruang(): void
     {
         $sekolahA = Sekolah::factory()->create();
         $sekolahB = Sekolah::factory()->create();
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $ruangB = Ruang::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'kode' => 'R.B-99',
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('ruang.destroy', $ruangB->id))
             ->assertNotFound();

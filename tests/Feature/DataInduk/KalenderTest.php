@@ -126,11 +126,24 @@ class KalenderTest extends TestCase
 
         $holiday = HariLibur::where('sekolah_id', $sekolah->id)->firstOrFail();
 
-        $deleteResponse = $this->actingAs($operator)
+        // Operator delete is rejected with 403 Forbidden
+        $this->actingAs($operator)
             ->withSession(['sekolah_id' => $sekolah->id])
-            ->delete(route('kalender.hari-libur.destroy', $holiday));
+            ->delete(route('kalender.hari-libur.destroy', $holiday))
+            ->assertForbidden();
 
-        $deleteResponse->assertRedirect();
+        $this->assertDatabaseHas('hari_libur', ['id' => $holiday->id]);
+
+        // Super Admin can delete holiday
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('kalender.hari-libur.destroy', $holiday))
+            ->assertRedirect();
+
         $this->assertDatabaseMissing('hari_libur', ['id' => $holiday->id]);
     }
 
@@ -139,16 +152,16 @@ class KalenderTest extends TestCase
         $sekolahA = Sekolah::factory()->create();
         $sekolahB = Sekolah::factory()->create();
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $holidayB = HariLibur::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'keterangan' => 'Libur Sekolah B',
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('kalender.hari-libur.destroy', $holidayB))
             ->assertNotFound();

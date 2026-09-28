@@ -40,6 +40,7 @@ class KalenderController extends Controller
             'hariLibur' => $hariLibur,
             'jamKerja' => $jamKerja,
             'canManage' => (bool) $canManage,
+            'canDelete' => (bool) $user?->can('data_induk.delete'),
             'totalSlotMingguan' => JamKerja::totalSlotMingguan(),
         ]);
     }

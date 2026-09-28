@@ -122,21 +122,57 @@ class RombelTest extends TestCase
         $response->assertSessionHasErrors('wali_kelas_id');
     }
 
+    public function test_operator_cannot_delete_rombel(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $rombel = Rombel::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('rombel.destroy', $rombel->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('rombel', ['id' => $rombel->id]);
+    }
+
+    public function test_super_admin_can_delete_rombel(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        setPermissionsTeamId($sekolah->id);
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
+
+        $rombel = Rombel::factory()->create(['sekolah_id' => $sekolah->id]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $sekolah->id])
+            ->delete(route('rombel.destroy', $rombel->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('rombel', ['id' => $rombel->id]);
+    }
+
     public function test_tenant_isolation_404_when_deleting_other_school_rombel(): void
     {
         $sekolahA = Sekolah::factory()->create();
         $sekolahB = Sekolah::factory()->create();
 
-        $operatorA = User::factory()->create(['sekolah_id' => $sekolahA->id]);
         setPermissionsTeamId($sekolahA->id);
-        $operatorA->assignRole('operator');
+        $superAdmin = User::factory()->create(['sekolah_id' => null]);
+        $superAdmin->assignRole('super_admin');
 
         $rombelB = Rombel::factory()->create([
             'sekolah_id' => $sekolahB->id,
             'nama' => 'VII-A',
         ]);
 
-        $this->actingAs($operatorA)
+        $this->actingAs($superAdmin)
             ->withSession(['sekolah_id' => $sekolahA->id])
             ->delete(route('rombel.destroy', $rombelB->id))
             ->assertNotFound();

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\DataInduk;
 
+use App\Models\Ruang;
 use App\Models\Sekolah;
+use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,13 +40,13 @@ class DataIndukRbacTest extends TestCase
     {
         $user = $this->createUserWithRole('super_admin');
 
-        // View
+        // View: OK
         $this->actingAs($user)
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->get(route('tahun-ajaran.index'))
             ->assertOk();
 
-        // Create
+        // Create: OK
         $this->actingAs($user)
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->post(route('tahun-ajaran.store'), [
@@ -54,23 +56,43 @@ class DataIndukRbacTest extends TestCase
             ])
             ->assertRedirect();
 
+        $ta = TahunAjaran::where('sekolah_id', $this->sekolah->id)->firstOrFail();
+
+        // Update: OK
+        $this->actingAs($user)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->put(route('tahun-ajaran.update', $ta->id), [
+                'nama' => '2026/2027 Revisi',
+                'tanggal_mulai' => '2026-07-15',
+                'tanggal_selesai' => '2027-06-20',
+            ])
+            ->assertRedirect();
+
         $this->assertDatabaseHas('tahun_ajaran', [
-            'sekolah_id' => $this->sekolah->id,
-            'nama' => '2026/2027',
+            'id' => $ta->id,
+            'nama' => '2026/2027 Revisi',
         ]);
+
+        // Delete: OK (Super Admin has delete permission)
+        $this->actingAs($user)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->delete(route('tahun-ajaran.destroy', $ta->id))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('tahun_ajaran', ['id' => $ta->id]);
     }
 
-    public function test_operator_has_full_crud_access(): void
+    public function test_operator_has_cru_access_to_data_induk(): void
     {
         $user = $this->createUserWithRole('operator');
 
-        // View
+        // View: OK (200)
         $this->actingAs($user)
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->get(route('ruang.index'))
             ->assertOk();
 
-        // Create
+        // Create: OK (302 redirect)
         $this->actingAs($user)
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->post(route('ruang.store'), [
@@ -81,10 +103,39 @@ class DataIndukRbacTest extends TestCase
             ])
             ->assertRedirect();
 
+        $ruang = Ruang::where('sekolah_id', $this->sekolah->id)->where('kode', 'R-RBAC')->firstOrFail();
+
+        // Update: OK (302 redirect)
+        $this->actingAs($user)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->put(route('ruang.update', $ruang->id), [
+                'kode' => 'R-RBAC',
+                'nama' => 'Ruang RBAC Updated',
+                'kategori' => 'kelas',
+                'kapasitas' => 36,
+            ])
+            ->assertRedirect();
+
         $this->assertDatabaseHas('ruang', [
-            'sekolah_id' => $this->sekolah->id,
-            'kode' => 'R-RBAC',
+            'id' => $ruang->id,
+            'nama' => 'Ruang RBAC Updated',
+            'kapasitas' => 36,
         ]);
+    }
+
+    public function test_operator_cannot_delete_data_induk_and_receives_403(): void
+    {
+        $user = $this->createUserWithRole('operator');
+
+        $ruang = Ruang::factory()->create(['sekolah_id' => $this->sekolah->id]);
+
+        // Delete: Forbidden (403)
+        $this->actingAs($user)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->delete(route('ruang.destroy', $ruang->id))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('ruang', ['id' => $ruang->id]);
     }
 
     public function test_kepsek_can_only_view_and_cannot_create_or_mutate_data_induk(): void
