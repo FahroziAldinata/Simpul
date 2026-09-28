@@ -2,14 +2,19 @@
 
 namespace Tests\Feature\DataInduk;
 
+use App\Enums\StatusSiswa;
+use App\Models\AnggotaRombel;
 use App\Models\Pegawai;
 use App\Models\Rombel;
 use App\Models\Sekolah;
 use App\Models\Semester;
+use App\Models\Siswa;
 use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class RombelTest extends TestCase
@@ -178,5 +183,123 @@ class RombelTest extends TestCase
             ->assertNotFound();
 
         $this->assertDatabaseHas('rombel', ['id' => $rombelB->id]);
+    }
+
+    public function test_rombel_counts_only_active_students_and_excludes_graduated_transferred_and_soft_deleted(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $ta = TahunAjaran::factory()->create(['sekolah_id' => $sekolah->id, 'is_aktif' => true]);
+        $semester = Semester::factory()->create(['sekolah_id' => $sekolah->id, 'tahun_ajaran_id' => $ta->id, 'is_aktif' => true]);
+
+        $rombel = Rombel::factory()->create([
+            'sekolah_id' => $sekolah->id,
+            'semester_id' => $semester->id,
+            'nama' => 'X RPL 1',
+            'kuota' => 2,
+        ]);
+
+        // 2 Active students
+        $siswaAktif1 = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Aktif]);
+        $siswaAktif2 = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Aktif]);
+
+        // 1 Lulus student
+        $siswaLulus = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Lulus]);
+
+        // 1 Pindah student
+        $siswaPindah = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Pindah]);
+
+        // 1 Soft-deleted student (even if status was aktif)
+        $siswaDeleted = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Aktif]);
+        $siswaDeleted->delete();
+
+        foreach ([$siswaAktif1, $siswaAktif2, $siswaLulus, $siswaPindah, $siswaDeleted] as $idx => $s) {
+            AnggotaRombel::create([
+                'sekolah_id' => $sekolah->id,
+                'rombel_id' => $rombel->id,
+                'siswa_id' => $s->id,
+                'semester_id' => $semester->id,
+                'nomor_absen' => $idx + 1,
+            ]);
+        }
+
+        $response = $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id, 'selected_semester_id' => $semester->id])
+            ->get(route('rombel.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('data-induk/rombel/Index')
+            ->has('rombel', 1)
+            ->where('rombel.0.jumlah_siswa', 2)
+        );
+    }
+
+    public function test_rombel_query_count_remains_constant_regardless_of_rombel_count(): void
+    {
+        $sekolah = Sekolah::factory()->create();
+
+        $operator = User::factory()->create(['sekolah_id' => $sekolah->id]);
+        setPermissionsTeamId($sekolah->id);
+        $operator->assignRole('operator');
+
+        $ta = TahunAjaran::factory()->create(['sekolah_id' => $sekolah->id, 'is_aktif' => true]);
+        $semester = Semester::factory()->create(['sekolah_id' => $sekolah->id, 'tahun_ajaran_id' => $ta->id, 'is_aktif' => true]);
+
+        // Warm up permissions and session
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id, 'selected_semester_id' => $semester->id])
+            ->get(route('rombel.index'));
+
+        // Case 1: 1 Rombel with students
+        $rombel1 = Rombel::factory()->create([
+            'sekolah_id' => $sekolah->id,
+            'semester_id' => $semester->id,
+        ]);
+        $siswa1 = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Aktif]);
+        AnggotaRombel::create([
+            'sekolah_id' => $sekolah->id,
+            'rombel_id' => $rombel1->id,
+            'siswa_id' => $siswa1->id,
+            'semester_id' => $semester->id,
+        ]);
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id, 'selected_semester_id' => $semester->id])
+            ->get(route('rombel.index'));
+
+        $queryCountWith1 = count(DB::getQueryLog());
+
+        // Case 2: Add 3 more Rombels with students
+        for ($i = 2; $i <= 4; $i++) {
+            $r = Rombel::factory()->create([
+                'sekolah_id' => $sekolah->id,
+                'semester_id' => $semester->id,
+            ]);
+            $s = Siswa::factory()->create(['sekolah_id' => $sekolah->id, 'status' => StatusSiswa::Aktif]);
+            AnggotaRombel::create([
+                'sekolah_id' => $sekolah->id,
+                'rombel_id' => $r->id,
+                'siswa_id' => $s->id,
+                'semester_id' => $semester->id,
+            ]);
+        }
+
+        DB::flushQueryLog();
+
+        $this->actingAs($operator)
+            ->withSession(['sekolah_id' => $sekolah->id, 'selected_semester_id' => $semester->id])
+            ->get(route('rombel.index'));
+
+        $queryCountWith4 = count(DB::getQueryLog());
+
+        $this->assertSame($queryCountWith1, $queryCountWith4, "Expected constant query count (no N+1), got {$queryCountWith1} with 1 rombel and {$queryCountWith4} with 4 rombels.");
     }
 }

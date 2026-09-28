@@ -30,12 +30,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { AlertCircle } from '@lucide/vue';
 
 interface WaliKelasOption {
     id: string;
@@ -70,6 +65,7 @@ interface RombelItem {
     nama: string;
     tingkat: number;
     kuota: number;
+    jumlah_siswa?: number;
     jurusan_id: string | null;
     jurusan?: JurusanOption | null;
     wali_kelas_id: string | null;
@@ -345,87 +341,94 @@ function deleteRombel(id: string) {
         <!-- Table Rombel -->
         <Card v-else>
             <CardContent class="p-0">
-                <TooltipProvider>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead class="w-24">Tingkat</TableHead>
-                                <TableHead>Nama Rombel</TableHead>
-                                <TableHead>Jurusan</TableHead>
-                                <TableHead>Wali Kelas</TableHead>
-                                <TableHead>Ruang Basis</TableHead>
-                                <TableHead class="w-32 text-center">Siswa / Kuota</TableHead>
-                                <TableHead class="w-24">Status</TableHead>
-                                <TableHead v-if="canManage" class="w-28 text-right">Aksi</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow v-if="rombel.length === 0">
-                                <TableCell :colspan="canManage ? 8 : 7" class="py-8 text-center text-muted-foreground">
-                                    Belum ada rombongan belajar terdaftar pada semester ini.
-                                </TableCell>
-                            </TableRow>
-                            <TableRow v-for="r in rombel" :key="r.id">
-                                <TableCell class="font-mono font-medium">
-                                    Kelas {{ r.tingkat }}
-                                </TableCell>
-                                <TableCell class="font-medium text-foreground">
-                                    {{ r.nama }}
-                                </TableCell>
-                                <TableCell class="text-xs text-muted-foreground">
-                                    {{ r.jurusan ? r.jurusan.kode : '-' }}
-                                </TableCell>
-                                <TableCell class="text-sm">
-                                    {{ r.wali_kelas ? r.wali_kelas.nama : '-' }}
-                                </TableCell>
-                                <TableCell class="text-xs text-muted-foreground">
-                                    {{ r.ruang ? `${r.ruang.kode} (${r.ruang.nama})` : '-' }}
-                                </TableCell>
-                                <TableCell class="text-center font-mono">
-                                    <Tooltip>
-                                        <TooltipTrigger as-child>
-                                            <span class="cursor-help rounded px-1.5 py-0.5 hover:bg-muted underline decoration-dotted underline-offset-4">
-                                                0 / {{ r.kuota }}
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p class="max-w-xs text-xs">
-                                                Jumlah siswa rombel akan tersedia pada Minggu 5 (Data Siswa). Angka saat ini menunjukkan kuota maksimal.
-                                            </p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TableCell>
-                                <TableCell>
-                                    <Badge v-if="r.is_aktif" variant="secondary" class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0">
-                                        Aktif
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead class="w-24">Tingkat</TableHead>
+                            <TableHead>Nama Rombel</TableHead>
+                            <TableHead>Jurusan</TableHead>
+                            <TableHead>Wali Kelas</TableHead>
+                            <TableHead>Ruang Basis</TableHead>
+                            <TableHead class="w-32 text-center">Siswa / Kuota</TableHead>
+                            <TableHead class="w-24">Status</TableHead>
+                            <TableHead v-if="canManage" class="w-28 text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-if="rombel.length === 0">
+                            <TableCell :colspan="canManage ? 8 : 7" class="py-8 text-center text-muted-foreground">
+                                Belum ada rombongan belajar terdaftar pada semester ini.
+                            </TableCell>
+                        </TableRow>
+                        <TableRow v-for="r in rombel" :key="r.id">
+                            <TableCell class="font-mono font-medium">
+                                Kelas {{ r.tingkat }}
+                            </TableCell>
+                            <TableCell class="font-medium text-foreground">
+                                {{ r.nama }}
+                            </TableCell>
+                            <TableCell class="text-xs text-muted-foreground">
+                                {{ r.jurusan ? r.jurusan.kode : '-' }}
+                            </TableCell>
+                            <TableCell class="text-sm">
+                                {{ r.wali_kelas ? r.wali_kelas.nama : '-' }}
+                            </TableCell>
+                            <TableCell class="text-xs text-muted-foreground">
+                                {{ r.ruang ? `${r.ruang.kode} (${r.ruang.nama})` : '-' }}
+                            </TableCell>
+                            <TableCell class="text-center font-mono">
+                                <div class="inline-flex items-center justify-center gap-1.5">
+                                    <span
+                                        :class="[
+                                            'px-1.5 py-0.5 rounded text-xs',
+                                            (r.jumlah_siswa ?? 0) > r.kuota
+                                                ? 'text-destructive font-semibold bg-destructive/10'
+                                                : 'text-foreground'
+                                        ]"
+                                    >
+                                        {{ r.jumlah_siswa ?? 0 }} / {{ r.kuota }}
+                                    </span>
+                                    <Badge
+                                        v-if="(r.jumlah_siswa ?? 0) > r.kuota"
+                                        variant="destructive"
+                                        class="text-[10px] px-1.5 py-0 h-4 inline-flex items-center gap-0.5"
+                                        title="Kapasitas rombel terlampaui"
+                                    >
+                                        <AlertCircle class="h-3 w-3" />
+                                        <span>Penuh</span>
                                     </Badge>
-                                    <Badge v-else variant="outline" class="text-muted-foreground">
-                                        Non-Aktif
-                                    </Badge>
-                                </TableCell>
-                                <TableCell v-if="canManage" class="text-right">
-                                    <div class="flex items-center justify-end gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            @click="openEdit(r)"
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            class="text-destructive hover:bg-destructive/10"
-                                            @click="deleteRombel(r.id)"
-                                        >
-                                            Hapus
-                                        </Button>
-                                    </div>
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </TooltipProvider>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <Badge v-if="r.is_aktif" variant="secondary" class="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0">
+                                    Aktif
+                                </Badge>
+                                <Badge v-else variant="outline" class="text-muted-foreground">
+                                    Non-Aktif
+                                </Badge>
+                            </TableCell>
+                            <TableCell v-if="canManage" class="text-right">
+                                <div class="flex items-center justify-end gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        @click="openEdit(r)"
+                                    >
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-destructive hover:bg-destructive/10"
+                                        @click="deleteRombel(r.id)"
+                                    >
+                                        Hapus
+                                    </Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusSiswa;
 use App\Models\Jurusan;
 use App\Models\Pegawai;
 use App\Models\Rombel;
@@ -51,7 +52,10 @@ class RombelController extends Controller
         if ($semester) {
             $query = Rombel::where('sekolah_id', $sekolahId)
                 ->where('semester_id', $semester->id)
-                ->with(['waliKelas', 'jurusan', 'ruang']);
+                ->with(['waliKelas', 'jurusan', 'ruang'])
+                ->withCount([
+                    'anggotaRombel as jumlah_siswa' => fn ($q) => $q->whereHas('siswa', fn ($s) => $s->where('status', StatusSiswa::Aktif)),
+                ]);
 
             if ($request->filled('tingkat')) {
                 $query->where('tingkat', (int) $request->query('tingkat'));
