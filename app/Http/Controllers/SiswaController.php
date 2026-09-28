@@ -210,7 +210,7 @@ class SiswaController extends Controller
     {
         Gate::authorize('view', $siswa);
 
-        $siswa->load(['wali', 'anggotaRombelAktif.rombel']);
+        $siswa->load(['wali', 'anggotaRombelAktif.rombel', 'berkas']);
 
         return Inertia::render('siswa/Index', [
             'selectedSiswa' => $siswa,
@@ -224,7 +224,7 @@ class SiswaController extends Controller
     {
         Gate::authorize('update', $siswa);
 
-        $siswa->load(['wali', 'anggotaRombelAktif.rombel']);
+        $siswa->load(['wali', 'anggotaRombelAktif.rombel', 'berkas']);
 
         return Inertia::render('siswa/Index', [
             'selectedSiswa' => $siswa,

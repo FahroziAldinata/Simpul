@@ -104,4 +104,50 @@ class SiswaPolicy
 
         return $user->hasRole(['super_admin', 'operator']) || $user->can('siswa.delete');
     }
+
+    /**
+     * Determine whether the user can view/download student documents.
+     */
+    public function viewBerkas(User $user, Siswa $siswa): bool
+    {
+        return $this->view($user, $siswa);
+    }
+
+    /**
+     * Determine whether the user can upload/replace student documents.
+     */
+    public function uploadBerkas(User $user, Siswa $siswa): bool
+    {
+        // Tenant isolation
+        $activeSekolahId = $user->hasRole('super_admin') ? session('sekolah_id') : $user->sekolah_id;
+        if ($activeSekolahId && $siswa->sekolah_id !== $activeSekolahId) {
+            return false;
+        }
+
+        // Wali Kelas is strictly read-only on berkas
+        if ($user->hasRole('wali_kelas') && ! $user->hasRole(['super_admin', 'operator'])) {
+            return false;
+        }
+
+        return $user->hasRole(['super_admin', 'operator']) || $user->can('siswa.update');
+    }
+
+    /**
+     * Determine whether the user can delete student documents.
+     */
+    public function deleteBerkas(User $user, Siswa $siswa): bool
+    {
+        // Tenant isolation
+        $activeSekolahId = $user->hasRole('super_admin') ? session('sekolah_id') : $user->sekolah_id;
+        if ($activeSekolahId && $siswa->sekolah_id !== $activeSekolahId) {
+            return false;
+        }
+
+        // Wali Kelas is strictly read-only on berkas
+        if ($user->hasRole('wali_kelas') && ! $user->hasRole(['super_admin', 'operator'])) {
+            return false;
+        }
+
+        return $user->hasRole(['super_admin', 'operator']) || $user->can('siswa.delete');
+    }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlokasiJamMapelController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BerkasSiswaController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\MataPelajaranController;
@@ -134,6 +135,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('siswa/{siswa}/edit', [SiswaController::class, 'edit'])->name('siswa.edit');
     Route::put('siswa/{siswa}', [SiswaController::class, 'update'])->name('siswa.update');
     Route::delete('siswa/{siswa}', [SiswaController::class, 'destroy'])->name('siswa.destroy');
+
+    // Berkas Siswa (T-06.01)
+    Route::post('siswa/{siswa}/berkas', [BerkasSiswaController::class, 'store'])->name('siswa.berkas.store');
+    Route::get('siswa/{siswa}/berkas/{jenis}/url', [BerkasSiswaController::class, 'showUrl'])->name('siswa.berkas.url');
+    Route::delete('siswa/{siswa}/berkas/{jenis}', [BerkasSiswaController::class, 'destroy'])->name('siswa.berkas.destroy');
 });
 
 require __DIR__.'/settings.php';
