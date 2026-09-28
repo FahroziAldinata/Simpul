@@ -25,6 +25,7 @@ class BerkasSiswaFactory extends Factory
             'siswa_id' => Siswa::factory(),
             'jenis' => fake()->randomElement(JenisBerkasSiswa::cases()),
             'file_path' => 'berkas/'.fake()->uuid().'.pdf',
+            'nama_file_asli' => fake()->word().'.pdf',
             'mime_type' => 'application/pdf',
             'file_size_bytes' => fake()->numberBetween(50000, 5000000),
         ];

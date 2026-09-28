@@ -4,28 +4,30 @@ namespace App\Models;
 
 use App\Enums\JenisBerkasSiswa;
 use App\Models\Concerns\BelongsToSekolah;
+use App\Models\Concerns\LogsSimpulActivity;
 use Database\Factories\BerkasSiswaFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
 /**
  * @property string $id
  * @property string $sekolah_id
  * @property string $siswa_id
  * @property JenisBerkasSiswa $jenis
  * @property string $file_path
+ * @property string|null $nama_file_asli
  * @property string $mime_type
  * @property int $file_size_bytes
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-use Illuminate\Support\Carbon;
-
 class BerkasSiswa extends Model
 {
     /** @use HasFactory<BerkasSiswaFactory> */
-    use BelongsToSekolah, HasFactory, HasUuids;
+    use BelongsToSekolah, HasFactory, HasUuids, LogsSimpulActivity;
 
     protected $table = 'berkas_siswa';
 
@@ -34,6 +36,7 @@ class BerkasSiswa extends Model
         'siswa_id',
         'jenis',
         'file_path',
+        'nama_file_asli',
         'mime_type',
         'file_size_bytes',
     ];
