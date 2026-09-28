@@ -11,7 +11,9 @@ use App\Http\Controllers\RombelController;
 use App\Http\Controllers\RuangController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
+use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
+use App\Http\Controllers\UserPreferenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -117,6 +119,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('alokasi-jam/{alokasiJamMapel}', [AlokasiJamMapelController::class, 'destroy'])
         ->middleware('permission:data_induk.delete')
         ->name('alokasi-jam.destroy');
+
+    // Preferensi User (Kolom tabel, dsb)
+    Route::patch('user/preferences', [UserPreferenceController::class, 'update'])
+        ->name('user.preferences.update');
+
+    // Data Siswa (T-05.01 s/d T-05.08)
+    Route::post('siswa/check-nisn', [SiswaController::class, 'checkNisn'])
+        ->middleware('throttle:30,1')
+        ->name('siswa.check-nisn');
+    Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
+    Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');
+    Route::put('siswa/{siswa}', [SiswaController::class, 'update'])->name('siswa.update');
+    Route::delete('siswa/{siswa}', [SiswaController::class, 'destroy'])->name('siswa.destroy');
 });
 
 require __DIR__.'/settings.php';
