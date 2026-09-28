@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import {
     AlertCircle,
     CheckCircle2,
@@ -33,7 +33,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useAutosave } from '@/composables/useAutosave';
-import type { RombelOption, SemesterInfo, SiswaItem, WaliItem } from '@/types/siswa';
+import type { RombelOption, SemesterInfo, SiswaItem } from '@/types/siswa';
 
 const props = defineProps<{
     open: boolean;
@@ -106,9 +106,13 @@ const defaultFormData = (): SiswaFormData => ({
 
 const form = useForm<SiswaFormData>(defaultFormData());
 
+const page = usePage();
+const authUser = computed(() => page.props.auth?.user);
+const draftStorageKey = computed(() => `simpul_siswa_draft_${authUser.value?.id ?? 'guest'}`);
+
 // Autosave integration (for create mode)
 const { hasSavedDraft, restoreDraft, clearDraft } = useAutosave({
-    key: 'simpul_siswa_create_draft',
+    key: draftStorageKey,
     formData: form,
     enabled: computed(() => !isEdit.value && props.open),
 });

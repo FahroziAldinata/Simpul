@@ -1,22 +1,24 @@
 import { computed, isRef, onMounted, onUnmounted, ref, type Ref } from 'vue';
 
 export interface UseAutosaveOptions<T> {
-    key: string;
+    key: string | Ref<string>;
     formData: Ref<T> | T;
     intervalMs?: number;
     enabled?: Ref<boolean> | boolean;
 }
 
 export function useAutosave<T extends object>(
-    optionsOrKey: UseAutosaveOptions<T> | string,
+    optionsOrKey: UseAutosaveOptions<T> | string | Ref<string>,
     formStateMaybe?: Ref<T> | T,
     intervalMsMaybe: number = 10000
 ) {
-    const isOptionsObject = typeof optionsOrKey === 'object';
-    const storageKey = isOptionsObject ? optionsOrKey.key : optionsOrKey;
+    const isOptionsObject = typeof optionsOrKey === 'object' && !isRef(optionsOrKey) && 'formData' in optionsOrKey;
+    const rawKey = isOptionsObject ? optionsOrKey.key : optionsOrKey;
     const formState = isOptionsObject ? optionsOrKey.formData : formStateMaybe!;
     const intervalMs = isOptionsObject ? (optionsOrKey.intervalMs ?? 10000) : intervalMsMaybe;
     const enabledCondition = isOptionsObject ? (optionsOrKey.enabled ?? true) : true;
+
+    const getKey = () => (isRef(rawKey) ? rawKey.value : (rawKey as string));
 
     const isEnabled = computed(() => {
         if (isRef(enabledCondition)) {
@@ -38,7 +40,7 @@ export function useAutosave<T extends object>(
 
     function checkExistingDraft() {
         try {
-            const raw = localStorage.getItem(storageKey);
+            const raw = localStorage.getItem(getKey());
             if (raw) {
                 const parsed = JSON.parse(raw) as Record<string, unknown>;
                 if (parsed && typeof parsed === 'object') {
@@ -47,6 +49,8 @@ export function useAutosave<T extends object>(
                         lastSavedAt.value = new Date(parsed._savedAt);
                     }
                 }
+            } else {
+                hasDraft.value = false;
             }
         } catch {
             hasDraft.value = false;
@@ -62,7 +66,7 @@ export function useAutosave<T extends object>(
                 ...data,
                 _savedAt: new Date().toISOString(),
             };
-            localStorage.setItem(storageKey, JSON.stringify(payload));
+            localStorage.setItem(getKey(), JSON.stringify(payload));
             lastSavedAt.value = new Date();
             hasDraft.value = true;
         } catch {
@@ -72,7 +76,7 @@ export function useAutosave<T extends object>(
 
     function restoreDraft(): Partial<T> | null {
         try {
-            const raw = localStorage.getItem(storageKey);
+            const raw = localStorage.getItem(getKey());
             if (!raw) return null;
             const parsed = JSON.parse(raw) as Record<string, unknown>;
             delete parsed._savedAt;
@@ -89,7 +93,7 @@ export function useAutosave<T extends object>(
 
     function clearDraft() {
         try {
-            localStorage.removeItem(storageKey);
+            localStorage.removeItem(getKey());
             hasDraft.value = false;
             lastSavedAt.value = null;
         } catch {

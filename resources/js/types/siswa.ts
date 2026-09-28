@@ -35,7 +35,7 @@ export interface SiswaItem {
     wali?: WaliItem[];
     anggota_rombel_aktif?: AnggotaRombelItem | null;
     created_at?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface RombelOption {

@@ -17,6 +17,15 @@ type Props = {
 };
 
 const handleLogout = () => {
+    try {
+        Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('simpul_siswa_draft_')) {
+                localStorage.removeItem(key);
+            }
+        });
+    } catch {
+        // Silently ignore if localStorage is unavailable
+    }
     router.flushAll();
 };
 
