@@ -369,4 +369,158 @@ class PegawaiCrudTest extends TestCase
             ->delete(route('pegawai.destroy', $pegawaiLain->id))
             ->assertNotFound();
     }
+
+    public function test_operator_can_assign_additional_roles_like_waka_kurikulum_and_wali_kelas(): void
+    {
+        $payload = [
+            'nama' => 'Bambang Triyono, M.Kom.',
+            'email' => 'bambang.waka@sekolah.sch.id',
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gty',
+            'jam_maks_per_minggu' => 24,
+            'roles' => ['waka_kurikulum', 'wali_kelas'],
+        ];
+
+        $response = $this->actingAs($this->operator)
+            ->postJson(route('pegawai.store'), $payload);
+
+        $response->assertCreated();
+
+        $user = User::where('email', 'bambang.waka@sekolah.sch.id')->first();
+        $this->assertNotNull($user);
+        $this->assertTrue($user->hasRole('guru'));
+        $this->assertTrue($user->hasRole('waka_kurikulum'));
+        $this->assertTrue($user->hasRole('wali_kelas'));
+
+        $pegawaiId = $response->json('pegawai.id');
+
+        // Test updating additional roles
+        $updatePayload = [
+            'nama' => 'Bambang Triyono, M.Kom.',
+            'email' => 'bambang.waka@sekolah.sch.id',
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gty',
+            'jam_maks_per_minggu' => 24,
+            'roles' => ['waka_kurikulum'],
+        ];
+
+        $updateResponse = $this->actingAs($this->operator)
+            ->putJson(route('pegawai.update', $pegawaiId), $updatePayload);
+
+        $updateResponse->assertOk();
+
+        $user->refresh();
+        $this->assertTrue($user->hasRole('guru'));
+        $this->assertTrue($user->hasRole('waka_kurikulum'));
+        $this->assertFalse($user->hasRole('wali_kelas'));
+    }
+
+    public function test_privilege_escalation_guard_super_admin_role_cannot_be_assigned_via_pegawai_endpoint(): void
+    {
+        // 1. Attempt on store
+        $payloadStore = [
+            'nama' => 'Attacker Pegawai',
+            'email' => 'attacker@sekolah.sch.id',
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gty',
+            'jam_maks_per_minggu' => 24,
+            'roles' => ['super_admin'],
+        ];
+
+        $responseStore = $this->actingAs($this->operator)
+            ->postJson(route('pegawai.store'), $payloadStore);
+
+        $responseStore->assertStatus(422);
+        $responseStore->assertJsonValidationErrors(['roles.0']);
+
+        // 2. Attempt on update
+        $payloadUpdate = [
+            'nama' => 'Guru Pengajar',
+            'email' => $this->guruUser->email,
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'pns',
+            'jam_maks_per_minggu' => 24,
+            'roles' => ['guru', 'super_admin'],
+        ];
+
+        $responseUpdate = $this->actingAs($this->operator)
+            ->putJson(route('pegawai.update', $this->guruPegawai->id), $payloadUpdate);
+
+        $responseUpdate->assertStatus(422);
+        $responseUpdate->assertJsonValidationErrors(['roles.1']);
+
+        $this->guruUser->refresh();
+        $this->assertFalse($this->guruUser->hasRole('super_admin'));
+    }
+
+    public function test_validation_nip_and_nuptk_only_applies_when_filled_allowing_multiple_nulls(): void
+    {
+        $pegawaiA = [
+            'nama' => 'Pegawai Tanpa NIP A',
+            'email' => 'tanpa.nip.a@sekolah.sch.id',
+            'nip' => null,
+            'nuptk' => null,
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gty',
+            'jam_maks_per_minggu' => 24,
+        ];
+
+        $responseA = $this->actingAs($this->operator)
+            ->postJson(route('pegawai.store'), $pegawaiA);
+        $responseA->assertCreated();
+
+        $pegawaiB = [
+            'nama' => 'Pegawai Tanpa NIP B',
+            'email' => 'tanpa.nip.b@sekolah.sch.id',
+            'nip' => null,
+            'nuptk' => null,
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gtt',
+            'jam_maks_per_minggu' => 24,
+        ];
+
+        $responseB = $this->actingAs($this->operator)
+            ->postJson(route('pegawai.store'), $pegawaiB);
+        $responseB->assertCreated();
+
+        $this->assertDatabaseHas('pegawai', ['email' => 'tanpa.nip.a@sekolah.sch.id', 'nip' => null, 'nuptk' => null]);
+        $this->assertDatabaseHas('pegawai', ['email' => 'tanpa.nip.b@sekolah.sch.id', 'nip' => null, 'nuptk' => null]);
+    }
+
+    public function test_initial_password_never_retrievable_via_any_endpoint_after_first_response(): void
+    {
+        $payload = [
+            'nama' => 'Pegawai Rahasia',
+            'email' => 'rahasia@sekolah.sch.id',
+            'jenis' => 'guru',
+            'status_kepegawaian' => 'gty',
+            'jam_maks_per_minggu' => 24,
+        ];
+
+        $storeResponse = $this->actingAs($this->operator)
+            ->postJson(route('pegawai.store'), $payload);
+
+        $storeResponse->assertCreated();
+        $this->assertNotEmpty($storeResponse->json('initial_password'));
+        $pegawaiId = $storeResponse->json('pegawai.id');
+
+        // Subsequent show request must NEVER return password or initial_password
+        $showResponse = $this->actingAs($this->operator)
+            ->getJson(route('pegawai.show', $pegawaiId));
+
+        $showResponse->assertOk();
+        $this->assertArrayNotHasKey('initial_password', $showResponse->json());
+        $this->assertArrayNotHasKey('password', $showResponse->json());
+        $this->assertArrayNotHasKey('password', $showResponse->json('user') ?? []);
+
+        // Subsequent index request must NEVER return password or initial_password
+        $indexResponse = $this->actingAs($this->operator)
+            ->getJson(route('pegawai.index', ['search' => 'Pegawai Rahasia']));
+
+        $indexResponse->assertOk();
+        $data = $indexResponse->json('data.0');
+        $this->assertArrayNotHasKey('initial_password', $data);
+        $this->assertArrayNotHasKey('password', $data);
+        $this->assertArrayNotHasKey('password', $data['user'] ?? []);
+    }
 }

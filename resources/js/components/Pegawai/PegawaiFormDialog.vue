@@ -58,6 +58,21 @@ const alamat = ref('');
 const noHp = ref('');
 const jamMaksPerMinggu = ref(24);
 const hariTidakMengajar = ref<string[]>([]);
+const additionalRoles = ref<string[]>([]);
+
+const assignableRoles = [
+    { value: 'waka_kurikulum', label: 'Waka Kurikulum', desc: 'Hak akses menyusun dan mengelola jadwal pelajaran' },
+    { value: 'wali_kelas', label: 'Wali Kelas', desc: 'Hak akses data siswa dan rombel binaan' },
+    { value: 'operator', label: 'Operator Tambahan', desc: 'Hak akses administrasi data induk dan kepegawaian' },
+];
+
+const toggleRole = (role: string) => {
+    if (additionalRoles.value.includes(role)) {
+        additionalRoles.value = additionalRoles.value.filter((r) => r !== role);
+    } else {
+        additionalRoles.value.push(role);
+    }
+};
 
 const hariOptions = [
     { value: 'senin', label: 'Senin' },
@@ -102,6 +117,11 @@ watch(
                 hariTidakMengajar.value = Array.isArray(props.pegawai.hari_tidak_mengajar)
                     ? [...props.pegawai.hari_tidak_mengajar]
                     : [];
+                additionalRoles.value = Array.isArray(props.pegawai.roles)
+                    ? props.pegawai.roles.filter(
+                        (r) => r !== props.pegawai?.jenis && !(props.pegawai?.jenis === 'tu' && r === 'operator')
+                    )
+                    : [];
             } else {
                 nama.value = '';
                 email.value = '';
@@ -117,6 +137,7 @@ watch(
                 noHp.value = '';
                 jamMaksPerMinggu.value = 24;
                 hariTidakMengajar.value = [];
+                additionalRoles.value = [];
             }
         }
     }
@@ -143,6 +164,7 @@ const handleSubmit = async () => {
             no_hp: noHp.value || null,
             jam_maks_per_minggu: jamMaksPerMinggu.value,
             hari_tidak_mengajar: hariTidakMengajar.value,
+            roles: additionalRoles.value,
         };
 
         const url = isEdit.value ? `/pegawai/${props.pegawai?.id}` : '/pegawai';
@@ -396,6 +418,33 @@ const handleSubmit = async () => {
                                 class="h-9 text-xs font-mono"
                             />
                         </div>
+                    </div>
+
+                    <!-- Peran Tambahan (Hak Akses Khusus) -->
+                    <div class="space-y-2 pt-2 border-t">
+                        <Label class="text-xs font-medium">Peran Tambahan (Hak Akses Penugasan)</Label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <label
+                                v-for="r in assignableRoles"
+                                :key="r.value"
+                                class="flex items-start gap-2.5 p-2 rounded-md border text-xs cursor-pointer hover:bg-muted/50 transition-colors"
+                            >
+                                <input
+                                    type="checkbox"
+                                    :value="r.value"
+                                    :checked="additionalRoles.includes(r.value)"
+                                    class="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4 mt-0.5"
+                                    @change="toggleRole(r.value)"
+                                />
+                                <div class="flex flex-col">
+                                    <span class="font-medium text-foreground">{{ r.label }}</span>
+                                    <span class="text-[11px] text-muted-foreground">{{ r.desc }}</span>
+                                </div>
+                            </label>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground">
+                            Peran dasar sesuai jenis pegawai selalu aktif. Peran super_admin dibatasi khusus tingkat platform.
+                        </p>
                     </div>
                 </div>
 

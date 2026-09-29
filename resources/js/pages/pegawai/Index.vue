@@ -259,6 +259,23 @@ function getJenisVariant(type: string): 'default' | 'secondary' | 'outline' {
     }
 }
 
+function getRoleLabel(role: string): string {
+    switch (role) {
+        case 'waka_kurikulum':
+            return 'Waka Kurikulum';
+        case 'wali_kelas':
+            return 'Wali Kelas';
+        case 'operator':
+            return 'Operator';
+        case 'kepsek':
+            return 'Kepala Sekolah';
+        case 'guru':
+            return 'Guru';
+        default:
+            return role;
+    }
+}
+
 function getStatusLabel(status: string): string {
     switch (status) {
         case 'pns':
@@ -378,11 +395,23 @@ function getStatusLabel(status: string): string {
                     </div>
                 </template>
 
-                <!-- Jenis Pegawai -->
+                <!-- Jenis Pegawai & Peran Tambahan -->
                 <template #cell-jenis="{ row }: { row: PegawaiItem }">
-                    <Badge :variant="getJenisVariant(row.jenis)" class="text-[11px] capitalize font-medium">
-                        {{ getJenisLabel(row.jenis) }}
-                    </Badge>
+                    <div class="flex flex-wrap gap-1 items-center">
+                        <Badge :variant="getJenisVariant(row.jenis)" class="text-[11px] capitalize font-medium">
+                            {{ getJenisLabel(row.jenis) }}
+                        </Badge>
+                        <template v-if="row.roles && row.roles.length > 0">
+                            <Badge
+                                v-for="role in row.roles.filter((r) => r !== row.jenis && !(row.jenis === 'tu' && r === 'operator'))"
+                                :key="role"
+                                variant="outline"
+                                class="text-[10px] py-0 px-1.5 border-primary/40 text-primary font-normal"
+                            >
+                                {{ getRoleLabel(role) }}
+                            </Badge>
+                        </template>
+                    </div>
                 </template>
 
                 <!-- Status Kepegawaian -->

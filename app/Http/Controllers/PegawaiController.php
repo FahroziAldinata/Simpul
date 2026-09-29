@@ -50,7 +50,7 @@ class PegawaiController extends Controller
 
         $query = Pegawai::query()
             ->with([
-                'user:id,name,email,must_change_password',
+                'user' => fn ($q) => $q->select('id', 'name', 'email', 'must_change_password')->with('roles:id,name'),
                 'alokasiJamMapel' => function ($q) use ($semesterAktif) {
                     if ($semesterAktif) {
                         $q->whereHas('rombel', fn ($rq) => $rq->where('semester_id', $semesterAktif->id));
@@ -93,6 +93,7 @@ class PegawaiController extends Controller
 
         $pegawaiList->through(function (Pegawai $p) {
             $p->setAttribute('beban_mengajar_aktual', $p->alokasiJamMapel->sum('jam_per_minggu'));
+            $p->setAttribute('roles', $p->user ? $p->user->roles->pluck('name')->values()->all() : []);
 
             return $p;
         });
@@ -148,14 +149,16 @@ class PegawaiController extends Controller
                 'must_change_password' => true,
             ]);
 
-            // Assign standard role based on jenis pegawai
-            $roleToAssign = match ($validated['jenis']) {
+            // Assign standard role based on jenis pegawai + optional additional roles
+            $baseRole = match ($validated['jenis']) {
                 'guru' => 'guru',
                 'tu' => 'operator',
                 'kepsek' => 'kepsek',
                 default => 'guru',
             };
-            $user->assignRole($roleToAssign);
+            $additionalRoles = $validated['roles'] ?? [];
+            $rolesToSync = array_values(array_unique(array_merge([$baseRole], $additionalRoles)));
+            $user->syncRoles($rolesToSync);
 
             /** @var Pegawai $pegawai */
             $pegawai = Pegawai::create([
@@ -210,7 +213,10 @@ class PegawaiController extends Controller
         $pegawai = $this->resolvePegawai($request, $pegawaiId);
         Gate::authorize('view', $pegawai);
 
-        return response()->json($pegawai->load(['user:id,name,email']));
+        $pegawai->load(['user.roles:id,name', 'alokasiJamMapel.rombel', 'alokasiJamMapel.mataPelajaran']);
+        $pegawai->setAttribute('roles', $pegawai->user ? $pegawai->user->roles->pluck('name')->values()->all() : []);
+
+        return response()->json($pegawai);
     }
 
     /**
@@ -241,7 +247,7 @@ class PegawaiController extends Controller
                 'hari_tidak_mengajar' => $validated['hari_tidak_mengajar'] ?? [],
             ]);
 
-            // Sync user data
+            // Sync user data & roles
             if ($pegawai->user) {
                 $pegawai->user->update([
                     'name' => $validated['nama'],
@@ -249,6 +255,16 @@ class PegawaiController extends Controller
                     'email' => $validated['email'],
                     'nip' => $validated['nip'] ?? null,
                 ]);
+
+                $baseRole = match ($validated['jenis']) {
+                    'guru' => 'guru',
+                    'tu' => 'operator',
+                    'kepsek' => 'kepsek',
+                    default => 'guru',
+                };
+                $additionalRoles = $validated['roles'] ?? [];
+                $rolesToSync = array_values(array_unique(array_merge([$baseRole], $additionalRoles)));
+                $pegawai->user->syncRoles($rolesToSync);
             }
         });
 

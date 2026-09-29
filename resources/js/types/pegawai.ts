@@ -3,6 +3,7 @@ export interface PegawaiUser {
     name: string;
     email: string;
     must_change_password: boolean;
+    roles?: Array<{ id: number; name: string }>;
 }
 
 export interface PegawaiItem {
@@ -24,6 +25,7 @@ export interface PegawaiItem {
     jam_maks_per_minggu: number;
     hari_tidak_mengajar?: string[] | null;
     beban_mengajar_aktual?: number;
+    roles?: string[] | null;
     created_at?: string;
     user?: PegawaiUser | null;
 }

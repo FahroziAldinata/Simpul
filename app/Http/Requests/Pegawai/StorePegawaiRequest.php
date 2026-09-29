@@ -55,6 +55,12 @@ class StorePegawaiRequest extends FormRequest
             'jam_maks_per_minggu' => ['nullable', 'integer', 'min:1', 'max:60'],
             'hari_tidak_mengajar' => ['nullable', 'array'],
             'hari_tidak_mengajar.*' => [Rule::in(['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'])],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => [
+                'string',
+                Rule::in(['guru', 'operator', 'kepsek', 'waka_kurikulum', 'wali_kelas']),
+                Rule::notIn(['super_admin']),
+            ],
         ];
     }
 
