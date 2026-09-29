@@ -55,10 +55,12 @@ class KartuPegawaiController extends Controller
             abort(404, 'Sekolah aktif tidak ditemukan.');
         }
 
-        // Authorization: only super_admin and operator can print bulk cards
         if (! $user->hasRole(['super_admin', 'operator'])) {
             abort(403, 'Anda tidak memiliki hak akses untuk mencetak kartu seluruh pegawai.');
         }
+
+        // Dynamically elevate memory limit for bulk PDF generation (benchmarked up to ~273 MB)
+        @ini_set('memory_limit', '512M');
 
         /** @var Sekolah $sekolah */
         $sekolah = Sekolah::findOrFail($activeSekolahId);

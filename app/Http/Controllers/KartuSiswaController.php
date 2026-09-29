@@ -64,6 +64,9 @@ class KartuSiswaController extends Controller
             abort(403, 'Anda tidak memiliki hak akses untuk mencetak kartu rombel ini.');
         }
 
+        // Dynamically elevate memory limit for bulk PDF generation (benchmarked up to ~273 MB for 36 cards)
+        @ini_set('memory_limit', '512M');
+
         $sekolah = $rombel->sekolah;
         $siswaList = Siswa::whereHas('anggotaRombel', function ($q) use ($rombel) {
             $q->where('rombel_id', $rombel->id);

@@ -280,6 +280,21 @@ class KartuDigitalTest extends TestCase
         $responseOther->assertForbidden();
     }
 
+    public function test_non_operator_roles_forbidden_from_bulk_pegawai_cards(): void
+    {
+        $rolesToTest = ['kepsek', 'waka_kurikulum', 'guru', 'wali_kelas', 'orang_tua'];
+
+        foreach ($rolesToTest as $roleName) {
+            $user = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+            $user->assignRole($roleName);
+
+            $response = $this->actingAs($user)
+                ->get(route('pegawai.kartu.massal'));
+
+            $response->assertForbidden();
+        }
+    }
+
     public function test_fallbacks_rendered_when_photo_and_logo_are_missing(): void
     {
         $kartuService = app(KartuDigitalService::class);
