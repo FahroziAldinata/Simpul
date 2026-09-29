@@ -25,8 +25,17 @@ class PegawaiFactory extends Factory
             'nuptk' => fake()->numerify('################'),
             'nip' => fake()->numerify('##################'),
             'nama' => fake()->name(),
+            'jenis_kelamin' => fake()->randomElement(['L', 'P']),
+            'tempat_lahir' => fake()->city(),
+            'tanggal_lahir' => fake()->date('Y-m-d', '-25 years'),
+            'agama' => fake()->randomElement(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha']),
+            'alamat' => fake()->address(),
+            'no_hp' => fake()->phoneNumber(),
+            'email' => fake()->unique()->safeEmail(),
             'jenis' => fake()->randomElement(['guru', 'tu', 'kepsek']),
             'status_kepegawaian' => fake()->randomElement(['pns', 'pppk', 'gty', 'gtt']),
+            'jam_maks_per_minggu' => 24,
+            'hari_tidak_mengajar' => [],
         ];
     }
 }
