@@ -65,7 +65,6 @@ class KartuDigitalService
             $encryptedPayload = $this->qrCodeService->generateEncryptedPayload(
                 'siswa',
                 $siswa->id,
-                $siswa->nisn,
                 $sekolah->id
             );
             $qrSvg = $this->qrCodeService->generateQrSvg($encryptedPayload, 120);
@@ -102,7 +101,6 @@ class KartuDigitalService
             $encryptedPayload = $this->qrCodeService->generateEncryptedPayload(
                 'pegawai',
                 $pegawai->id,
-                $pegawai->nip ?? $pegawai->nuptk,
                 $sekolah->id
             );
             $qrSvg = $this->qrCodeService->generateQrSvg($encryptedPayload, 120);

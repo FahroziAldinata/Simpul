@@ -19,10 +19,9 @@ class QrCodeService
      * - v: schema version
      * - t: 's' for siswa, 'p' for pegawai
      * - id: UUID of siswa or pegawai
-     * - num: NISN (siswa) or NIP/NUPTK (pegawai)
      * - sid: sekolah_id
      */
-    public function generateEncryptedPayload(string $type, string $id, ?string $number, string $sekolahId): string
+    public function generateEncryptedPayload(string $type, string $id, string $sekolahId): string
     {
         $shortType = match ($type) {
             'siswa' => 's',
@@ -34,7 +33,6 @@ class QrCodeService
             'v' => 1,
             't' => $shortType,
             'id' => $id,
-            'num' => $number,
             'sid' => $sekolahId,
         ];
 
@@ -44,7 +42,7 @@ class QrCodeService
     /**
      * Decrypt and validate payload from scanned QR Code.
      *
-     * @return array{v: int, t: string, id: string, num: string|null, sid: string}
+     * @return array{v: int, t: string, id: string, sid: string}
      */
     public function decryptPayload(string $encryptedPayload): array
     {
@@ -60,7 +58,6 @@ class QrCodeService
                 'v' => (int) ($data['v'] ?? 1),
                 't' => $data['t'],
                 'id' => $data['id'],
-                'num' => isset($data['num']) && is_string($data['num']) ? $data['num'] : null,
                 'sid' => $data['sid'],
             ];
         } catch (DecryptException $e) {

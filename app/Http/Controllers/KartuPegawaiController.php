@@ -55,8 +55,8 @@ class KartuPegawaiController extends Controller
             abort(404, 'Sekolah aktif tidak ditemukan.');
         }
 
-        // Authorization: operator, kepsek, waka_kurikulum, super_admin
-        if (! $user->hasRole(['super_admin', 'operator', 'kepsek', 'waka_kurikulum'])) {
+        // Authorization: only super_admin and operator can print bulk cards
+        if (! $user->hasRole(['super_admin', 'operator'])) {
             abort(403, 'Anda tidak memiliki hak akses untuk mencetak kartu seluruh pegawai.');
         }
 

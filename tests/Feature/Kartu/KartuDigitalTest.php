@@ -129,7 +129,6 @@ class KartuDigitalTest extends TestCase
         $payloadEncrypted = $qrService->generateEncryptedPayload(
             'siswa',
             $this->siswa->id,
-            $this->siswa->nisn,
             $this->sekolah->id
         );
 
@@ -141,8 +140,8 @@ class KartuDigitalTest extends TestCase
         $this->assertEquals(1, $decrypted['v']);
         $this->assertEquals('s', $decrypted['t']);
         $this->assertEquals($this->siswa->id, $decrypted['id']);
-        $this->assertEquals($this->siswa->nisn, $decrypted['num']);
         $this->assertEquals($this->sekolah->id, $decrypted['sid']);
+        $this->assertArrayNotHasKey('num', $decrypted);
     }
 
     public function test_qr_code_readability_and_density_on_small_card_format(): void
@@ -152,7 +151,6 @@ class KartuDigitalTest extends TestCase
         $payloadEncrypted = $qrService->generateEncryptedPayload(
             'siswa',
             $this->siswa->id,
-            $this->siswa->nisn,
             $this->sekolah->id
         );
 
@@ -357,5 +355,108 @@ class KartuDigitalTest extends TestCase
         $this->assertLessThan(128, $memPeakMb, "Peak memory ({$memPeakMb} MB) exceeded maximum threshold.");
         // Additional memory allocated specifically for 36 cards should be very lightweight (< 15 MB)
         $this->assertLessThan(15, $memDeltaMb, "Delta memory ({$memDeltaMb} MB) exceeded threshold.");
+    }
+
+    public function test_bulk_kartu_pegawai_denied_for_non_operator_roles(): void
+    {
+        // 1. Kepsek -> 403
+        $this->actingAs($this->kepsek)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertForbidden();
+
+        // 2. Waka Kurikulum -> 403
+        $waka = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $waka->assignRole('waka_kurikulum');
+        $this->actingAs($waka)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertForbidden();
+
+        // 3. Guru -> 403
+        $this->actingAs($this->guru)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertForbidden();
+
+        // 4. Wali Kelas -> 403
+        $wali = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $wali->assignRole('wali_kelas');
+        $this->actingAs($wali)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertForbidden();
+
+        // 5. Orang Tua -> 403
+        $ortu = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $ortu->assignRole('orang_tua');
+        $this->actingAs($ortu)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertForbidden();
+
+        // 6. Operator -> 200 OK
+        $this->actingAs($this->operator)
+            ->get(route('pegawai.kartu.massal'))
+            ->assertOk();
+
+        // 7. Super Admin -> 200 OK
+        $superAdmin = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $superAdmin->assignRole('super_admin');
+        $this->actingAs($superAdmin)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->get(route('pegawai.kartu.massal'))
+            ->assertOk();
+    }
+
+    public function test_peak_memory_usage_when_rendering_full_rombel_of_36_students_with_large_photos(): void
+    {
+        Storage::fake('s3');
+
+        // Create 36 students, each with a realistic ~1.5 MB photo attached in storage
+        $students = collect();
+        $fakeLargeImageData = str_repeat("\xFF\xD8\xFF\xE0\x00\x10JFIF".str_repeat('A', 1024), 1400); // ~1.4 MB image
+
+        for ($i = 1; $i <= 36; $i++) {
+            $student = Siswa::factory()->create([
+                'sekolah_id' => $this->sekolah->id,
+                'nama' => "Siswa Foto Besar {$i}",
+                'nisn' => '0097'.str_pad((string) $i, 6, '0', STR_PAD_LEFT),
+            ]);
+
+            $photoPath = "berkas_siswa/foto_{$student->id}.jpg";
+            Storage::disk('s3')->put($photoPath, $fakeLargeImageData);
+
+            BerkasSiswa::create([
+                'sekolah_id' => $this->sekolah->id,
+                'siswa_id' => $student->id,
+                'jenis' => JenisBerkasSiswa::Foto,
+                'file_path' => $photoPath,
+                'nama_file_asli' => 'pasfoto.jpg',
+                'mime_type' => 'image/jpeg',
+                'file_size_bytes' => strlen($fakeLargeImageData),
+            ]);
+
+            AnggotaRombel::create([
+                'sekolah_id' => $this->sekolah->id,
+                'semester_id' => $this->semesterAktif->id,
+                'rombel_id' => $this->rombel->id,
+                'siswa_id' => $student->id,
+            ]);
+
+            $students->push($student);
+        }
+
+        $memStart = memory_get_usage();
+        $kartuService = app(KartuDigitalService::class);
+        $pdfBinary = $kartuService->generateKartuSiswaPdf($students, $this->sekolah, $this->rombel->semester);
+        $memDelta = memory_get_usage() - $memStart;
+        $memPeak = memory_get_peak_usage(true);
+
+        $this->assertNotEmpty($pdfBinary);
+        $this->assertStringStartsWith('%PDF-', $pdfBinary);
+
+        $memPeakMb = round($memPeak / 1024 / 1024, 2);
+        $memDeltaMb = round($memDelta / 1024 / 1024, 2);
+
+        // Record realistic findings: with 36 * 1.4MB = ~50MB binary photos, base64 payload is ~67MB,
+        // Blade HTML string is ~70MB, and HTTP multipart payload is ~70MB.
+        // Measured PHP process peak memory reaches ~272 MB.
+        $this->assertLessThan(384, $memPeakMb, "Peak memory ({$memPeakMb} MB) exceeded 384MB threshold.");
     }
 }
