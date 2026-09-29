@@ -63,3 +63,50 @@ export interface SemesterInfo {
     nama: string;
     is_aktif: boolean;
 }
+
+export interface MutasiItem {
+    id: string;
+    sekolah_id: string;
+    siswa_id: string;
+    semester_id: string;
+    tipe: 'masuk' | 'keluar' | 'pindah_rombel' | 'naik_kelas' | 'tinggal_kelas' | 'lulus' | 'drop_out';
+    tanggal: string;
+    alasan?: string | null;
+    asal_sekolah?: string | null;
+    sekolah_tujuan?: string | null;
+    dari_rombel_id?: string | null;
+    ke_rombel_id?: string | null;
+    status_sebelum?: string | null;
+    rombel_id_sebelum?: string | null;
+    anggota_rombel_dibuat_baru: boolean;
+    is_batal: boolean;
+    alasan_batal?: string | null;
+    dibatalkan_oleh?: number | null;
+    dibatalkan_at?: string | null;
+    created_at?: string;
+    dari_rombel?: { id: string; nama: string } | null;
+    ke_rombel?: { id: string; nama: string } | null;
+    semester?: { id: string; nama: string; is_aktif: boolean } | null;
+    dibatalkan_oleh_user?: { id: number; name: string } | null;
+}
+
+export interface RiwayatKelasItem {
+    id: string;
+    sekolah_id: string;
+    rombel_id: string;
+    siswa_id: string;
+    semester_id: string;
+    nomor_absen?: number | null;
+    rombel?: {
+        id: string;
+        nama: string;
+        tingkat: number;
+        wali_kelas?: { id: string; nama: string } | null;
+    };
+    semester?: {
+        id: string;
+        nama: string;
+        is_aktif: boolean;
+    };
+}
+

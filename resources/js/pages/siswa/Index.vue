@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import {
+    ArrowRightLeft,
     Columns3,
     Filter,
     GraduationCap,
@@ -14,6 +15,7 @@ import {
     UserX,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import MutasiDialog from '@/components/Siswa/MutasiDialog.vue';
 import SiswaFormDialog from '@/components/Siswa/SiswaFormDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -281,6 +283,15 @@ function openCreate() {
 function openEdit(item: SiswaItem) {
     selectedSiswa.value = item;
     isFormOpen.value = true;
+}
+
+// Mutasi Dialog State
+const isMutasiOpen = ref(false);
+const selectedSiswaForMutasi = ref<SiswaItem | null>(null);
+
+function openMutasi(item: SiswaItem) {
+    selectedSiswaForMutasi.value = item;
+    isMutasiOpen.value = true;
 }
 
 // Delete Confirmation Dialog
@@ -600,6 +611,10 @@ function executeDelete() {
                             <Pencil class="h-3.5 w-3.5 mr-2" />
                             {{ isWaliKelas ? 'Ubah Kontak/Wali' : 'Edit' }}
                         </DropdownMenuItem>
+                        <DropdownMenuItem @click="openMutasi(row)">
+                            <ArrowRightLeft class="h-3.5 w-3.5 mr-2" />
+                            Mutasi & Riwayat
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator v-if="canManage" />
                         <DropdownMenuItem
                             v-if="canManage"
@@ -624,6 +639,17 @@ function executeDelete() {
         :is-wali-kelas="isWaliKelas"
         @update:open="(val: boolean) => (isFormOpen = val)"
         @success="isFormOpen = false"
+    />
+
+    <!-- Mutasi & Riwayat Kelas Dialog -->
+    <MutasiDialog
+        :open="isMutasiOpen"
+        :siswa="selectedSiswaForMutasi"
+        :rombel-list="rombelList"
+        :current-semester="currentSemester"
+        :can-manage="canManage"
+        @update:open="(val: boolean) => (isMutasiOpen = val)"
+        @success="() => router.reload({ only: ['siswa'] })"
     />
 
     <!-- Delete Confirmation Modal -->
