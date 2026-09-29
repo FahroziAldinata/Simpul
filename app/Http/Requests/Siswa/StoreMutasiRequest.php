@@ -27,7 +27,12 @@ class StoreMutasiRequest extends FormRequest
         return [
             'tipe' => ['required', Rule::enum(JenisMutasi::class)],
             'tanggal' => ['required', 'date'],
-            'alasan' => ['nullable', 'string', 'max:1000'],
+            'alasan' => [
+                Rule::requiredIf($this->input('tipe') === JenisMutasi::Keluar->value),
+                'nullable',
+                'string',
+                'max:1000',
+            ],
             'asal_sekolah' => [
                 Rule::requiredIf($this->input('tipe') === JenisMutasi::Masuk->value),
                 'nullable',

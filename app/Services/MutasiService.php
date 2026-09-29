@@ -63,9 +63,19 @@ class MutasiService
                 if ($semesterId !== null) {
                     $semester = Semester::where('sekolah_id', $siswa->sekolah_id)->findOrFail($semesterId);
                 } else {
-                    $semester = Semester::where('sekolah_id', $siswa->sekolah_id)
-                        ->where('is_aktif', true)
+                    /** @var AnggotaRombel|null $anggotaSaatIni */
+                    $anggotaSaatIni = AnggotaRombel::with('semester')
+                        ->where('siswa_id', $siswa->id)
+                        ->latest('created_at')
                         ->first();
+
+                    if ($anggotaSaatIni && $anggotaSaatIni->semester) {
+                        $semester = $anggotaSaatIni->semester;
+                    } else {
+                        $semester = Semester::where('sekolah_id', $siswa->sekolah_id)
+                            ->where('is_aktif', true)
+                            ->first();
+                    }
                 }
 
                 if (! $semester || ! $semester->is_aktif) {

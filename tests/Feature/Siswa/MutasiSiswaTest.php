@@ -539,4 +539,76 @@ class MutasiSiswaTest extends TestCase
 
         $responseIndex->assertStatus(404);
     }
+
+    public function test_mutasi_keluar_lulus_drop_out_ditolak_ketika_semester_rombel_siswa_saat_ini_berstatus_arsip(): void
+    {
+        $semesterArsip = Semester::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'is_aktif' => false,
+        ]);
+
+        $rombelArsip = Rombel::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $semesterArsip->id,
+            'nama' => 'X-Arsip',
+        ]);
+
+        $siswaDiRombelArsip = Siswa::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'status' => StatusSiswa::Aktif,
+        ]);
+
+        AnggotaRombel::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $semesterArsip->id,
+            'siswa_id' => $siswaDiRombelArsip->id,
+            'rombel_id' => $rombelArsip->id,
+        ]);
+
+        // 1. Mutasi Keluar ditolak jika semester rombel saat ini arsip
+        $responseKeluar = $this->actingAs($this->operator)
+            ->postJson("/siswa/{$siswaDiRombelArsip->id}/mutasi", [
+                'tipe' => JenisMutasi::Keluar->value,
+                'tanggal' => '2026-09-25',
+                'sekolah_tujuan' => 'SMA Lain',
+                'alasan' => 'Pindah domisili',
+            ]);
+
+        $responseKeluar->assertStatus(422);
+        $responseKeluar->assertJsonValidationErrors(['semester_id']);
+
+        // 2. Mutasi Lulus ditolak jika semester rombel saat ini arsip
+        $responseLulus = $this->actingAs($this->operator)
+            ->postJson("/siswa/{$siswaDiRombelArsip->id}/mutasi", [
+                'tipe' => JenisMutasi::Lulus->value,
+                'tanggal' => '2026-09-25',
+                'alasan' => 'Kelulusan',
+            ]);
+
+        $responseLulus->assertStatus(422);
+        $responseLulus->assertJsonValidationErrors(['semester_id']);
+
+        // 3. Mutasi Drop Out ditolak jika semester rombel saat ini arsip
+        $responseDO = $this->actingAs($this->operator)
+            ->postJson("/siswa/{$siswaDiRombelArsip->id}/mutasi", [
+                'tipe' => JenisMutasi::DropOut->value,
+                'tanggal' => '2026-09-25',
+                'alasan' => 'Drop out',
+            ]);
+
+        $responseDO->assertStatus(422);
+        $responseDO->assertJsonValidationErrors(['semester_id']);
+    }
+
+    public function test_mutasi_keluar_tanpa_tanggal_alasan_atau_sekolah_tujuan_ditolak_validasi(): void
+    {
+        $response = $this->actingAs($this->operator)
+            ->postJson("/siswa/{$this->siswa->id}/mutasi", [
+                'tipe' => JenisMutasi::Keluar->value,
+                // sengaja kosong: tanggal, alasan, sekolah_tujuan
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['tanggal', 'alasan', 'sekolah_tujuan']);
+    }
 }
