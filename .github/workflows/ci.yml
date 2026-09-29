@@ -80,6 +80,7 @@ jobs:
       - name: Setup Environment
         run: |
           cp .env.example .env
+          sed -i 's|GOTENBERG_URL=http://gotenberg:3000|GOTENBERG_URL=http://127.0.0.1:3000|' .env
           php artisan key:generate
           php artisan wayfinder:generate
 
