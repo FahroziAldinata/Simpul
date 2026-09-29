@@ -75,3 +75,11 @@ sequenceDiagram
     end
     PC-->>Op: Respons Berhasil
 ```
+
+---
+
+## 5. Item Terbuka (Open Items)
+
+1. **Terminasi Sesi Aktif Saat Soft-Delete:**
+   - Saat akun pengguna di-soft-delete, percobaan login baru segera ditolak oleh sistem autentikasi (`WHERE deleted_at IS NULL`). Namun, sesi login yang sedang aktif (*session cookies / remember-me*) tidak otomatis terputus seketika pada siklus request berjalan tanpa adanya session revocation eksplisit (misalnya `DB::table('sessions')->where('user_id', $id)->delete()`).
+   - Hal ini dicatat sebagai item terbuka untuk evaluasi mekanisme invalidasi sesi/token real-time di rilis mendatang.

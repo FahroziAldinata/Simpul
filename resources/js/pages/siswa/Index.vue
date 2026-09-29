@@ -3,11 +3,13 @@ import { Head, router } from '@inertiajs/vue3';
 import {
     ArrowRightLeft,
     Columns3,
+    CreditCard,
     Filter,
     GraduationCap,
     MoreHorizontal,
     Pencil,
     Plus,
+    Printer,
     RotateCcw,
     Search,
     Trash2,
@@ -355,6 +357,20 @@ function executeDelete() {
                     </DropdownMenuContent>
                 </DropdownMenu>
 
+                <!-- Cetak Kartu Rombel Button (When Rombel is selected) -->
+                <Button
+                    v-if="rombelId"
+                    variant="outline"
+                    size="sm"
+                    class="h-9"
+                    as-child
+                >
+                    <a :href="`/rombel/${rombelId}/kartu`" target="_blank" class="flex items-center">
+                        <Printer class="h-4 w-4 mr-1.5" />
+                        Cetak Kartu Rombel
+                    </a>
+                </Button>
+
                 <!-- Tambah Siswa Button (Operator & Super Admin) -->
                 <Button v-if="canManage" size="sm" class="h-9" @click="openCreate">
                     <Plus class="h-4 w-4 mr-1.5" />
@@ -614,6 +630,12 @@ function executeDelete() {
                         <DropdownMenuItem @click="openMutasi(row)">
                             <ArrowRightLeft class="h-3.5 w-3.5 mr-2" />
                             Mutasi & Riwayat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem as-child>
+                            <a :href="`/siswa/${row.id}/kartu`" target="_blank" class="flex items-center w-full">
+                                <CreditCard class="h-3.5 w-3.5 mr-2" />
+                                Cetak Kartu
+                            </a>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator v-if="canManage" />
                         <DropdownMenuItem

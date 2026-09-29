@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'gotenberg' => [
+        'url' => env('GOTENBERG_URL', 'http://gotenberg:3000'),
+    ],
+
 ];

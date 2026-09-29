@@ -5,6 +5,8 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BerkasSiswaController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
+use App\Http\Controllers\KartuPegawaiController;
+use App\Http\Controllers\KartuSiswaController;
 use App\Http\Controllers\MataPelajaranController;
 use App\Http\Controllers\MutasiSiswaController;
 use App\Http\Controllers\PegawaiController;
@@ -24,10 +26,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::post('sekolah-aktif', [SekolahAktifController::class, 'update'])->name('sekolah-aktif.update');
     Route::post('periode-aktif', [PeriodeAktifController::class, 'update'])->name('periode-aktif.update');
-    // Data Kepegawaian (T-06.04 & T-06.05)
+    // Data Kepegawaian (T-06.04 & T-06.05) & Kartu Pegawai (T-06.06)
     Route::get('pegawai', [PegawaiController::class, 'index'])->name('pegawai.index');
     Route::post('pegawai', [PegawaiController::class, 'store'])->name('pegawai.store');
+    Route::get('pegawai/kartu/cetak-massal', [KartuPegawaiController::class, 'cetakMassal'])->name('pegawai.kartu.massal');
     Route::get('pegawai/{pegawai}', [PegawaiController::class, 'show'])->name('pegawai.show');
+    Route::get('pegawai/{pegawai}/kartu', [KartuPegawaiController::class, 'show'])->name('pegawai.kartu');
     Route::put('pegawai/{pegawai}', [PegawaiController::class, 'update'])->name('pegawai.update');
     Route::delete('pegawai/{pegawai}', [PegawaiController::class, 'destroy'])->name('pegawai.destroy');
     Route::get('audit-logs', [AuditLogController::class, 'index'])
@@ -151,6 +155,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('siswa/{siswa}/mutasi', [MutasiSiswaController::class, 'index'])->name('siswa.mutasi.index');
     Route::post('siswa/{siswa}/mutasi', [MutasiSiswaController::class, 'store'])->name('siswa.mutasi.store');
     Route::post('mutasi/{mutasi}/batal', [MutasiSiswaController::class, 'batalkan'])->name('siswa.mutasi.batal');
+
+    // Kartu Digital PDF Siswa & Rombel (T-06.06)
+    Route::get('siswa/{siswa}/kartu', [KartuSiswaController::class, 'show'])->name('siswa.kartu');
+    Route::get('rombel/{rombel}/kartu', [KartuSiswaController::class, 'rombel'])->name('rombel.kartu');
 });
 
 require __DIR__.'/settings.php';

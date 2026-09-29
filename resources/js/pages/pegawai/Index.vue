@@ -5,12 +5,14 @@ import {
     Calendar,
     Check,
     Copy,
+    CreditCard,
     KeyRound,
     Loader2,
     MoreHorizontal,
     Pencil,
     Phone,
     Plus,
+    Printer,
     Search,
     Trash2,
     Users,
@@ -311,6 +313,12 @@ function getStatusLabel(status: string): string {
             </div>
 
             <div class="flex items-center gap-2">
+                <Button v-if="canManage" variant="outline" size="sm" class="gap-1.5 text-xs shadow-xs" as-child>
+                    <a href="/pegawai/kartu/cetak-massal" target="_blank" class="flex items-center">
+                        <Printer class="h-4 w-4" />
+                        Cetak Kartu Pegawai
+                    </a>
+                </Button>
                 <Button v-if="canManage" size="sm" class="gap-1.5 text-xs shadow-xs" @click="openCreateDialog">
                     <Plus class="h-4 w-4" />
                     Tambah Pegawai
@@ -485,6 +493,12 @@ function getStatusLabel(status: string): string {
                             <DropdownMenuItem v-if="canManage" class="text-xs cursor-pointer" @click="openEditDialog(row)">
                                 <Pencil class="h-3.5 w-3.5 mr-2" />
                                 Ubah Data
+                            </DropdownMenuItem>
+                            <DropdownMenuItem as-child class="text-xs cursor-pointer">
+                                <a :href="`/pegawai/${row.id}/kartu`" target="_blank" class="flex items-center w-full">
+                                    <CreditCard class="h-3.5 w-3.5 mr-2" />
+                                    Cetak Kartu
+                                </a>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 v-if="canManage"
