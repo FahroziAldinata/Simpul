@@ -19,7 +19,17 @@ class PasswordUpdateRequest extends FormRequest
     {
         return [
             'current_password' => $this->currentPasswordRules(),
-            'password' => $this->passwordRules(),
+            'password' => array_merge($this->passwordRules(), ['different:current_password']),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'password.different' => 'Kata sandi baru tidak boleh sama dengan kata sandi saat ini.',
         ];
     }
 }
