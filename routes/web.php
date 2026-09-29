@@ -24,7 +24,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'Dashboard')->name('dashboard');
     Route::post('sekolah-aktif', [SekolahAktifController::class, 'update'])->name('sekolah-aktif.update');
     Route::post('periode-aktif', [PeriodeAktifController::class, 'update'])->name('periode-aktif.update');
+    // Data Kepegawaian (T-06.04 & T-06.05)
+    Route::get('pegawai', [PegawaiController::class, 'index'])->name('pegawai.index');
+    Route::post('pegawai', [PegawaiController::class, 'store'])->name('pegawai.store');
     Route::get('pegawai/{pegawai}', [PegawaiController::class, 'show'])->name('pegawai.show');
+    Route::put('pegawai/{pegawai}', [PegawaiController::class, 'update'])->name('pegawai.update');
+    Route::delete('pegawai/{pegawai}', [PegawaiController::class, 'destroy'])->name('pegawai.destroy');
     Route::get('audit-logs', [AuditLogController::class, 'index'])
         ->middleware('permission:audit_log.view')
         ->name('audit-logs.index');
