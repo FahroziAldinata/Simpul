@@ -137,6 +137,14 @@ class Siswa extends Model
     }
 
     /**
+     * @return HasMany<MutasiSiswa, $this>
+     */
+    public function mutasi(): HasMany
+    {
+        return $this->hasMany(MutasiSiswa::class, 'siswa_id')->orderBy('tanggal', 'desc')->orderBy('created_at', 'desc');
+    }
+
+    /**
      * Compute data completeness indicator without triggering lazy loading.
      */
     public function getIsDataLengkapAttribute(): bool
