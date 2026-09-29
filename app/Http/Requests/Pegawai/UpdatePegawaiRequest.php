@@ -24,14 +24,31 @@ class UpdatePegawaiRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var Pegawai|null $pegawai */
-        $pegawai = $this->route('pegawai');
-        $userId = $pegawai?->user_id;
+        $sekolahId = $this->user()?->hasRole('super_admin') ? session('sekolah_id') : $this->user()?->sekolah_id;
+        $pegawaiId = is_string($this->route('pegawai')) ? $this->route('pegawai') : $this->route('pegawai')?->id;
+        $userId = $pegawaiId ? Pegawai::withoutGlobalScopes()->where('id', $pegawaiId)->value('user_id') : null;
 
         return [
             'nama' => ['required', 'string', 'max:255'],
-            'nip' => ['nullable', 'string', 'max:30'],
-            'nuptk' => ['nullable', 'string', 'max:30'],
+            'nip' => [
+                'nullable',
+                'string',
+                'max:30',
+                Rule::unique('pegawai', 'nip')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at'))
+                    ->ignore($pegawaiId),
+                Rule::unique('users', 'nip')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId))
+                    ->ignore($userId),
+            ],
+            'nuptk' => [
+                'nullable',
+                'string',
+                'max:30',
+                Rule::unique('pegawai', 'nuptk')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at'))
+                    ->ignore($pegawaiId),
+            ],
             'jenis' => ['required', Rule::in(['guru', 'tu', 'kepsek'])],
             'status_kepegawaian' => ['required', Rule::in(['pns', 'pppk', 'gty', 'gtt', 'honorer'])],
             'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],

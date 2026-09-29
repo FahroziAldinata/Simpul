@@ -270,7 +270,13 @@ class PegawaiController extends Controller
         $pegawai = $this->resolvePegawai($request, $pegawaiId);
         Gate::authorize('delete', $pegawai);
 
-        $pegawai->delete();
+        DB::transaction(function () use ($pegawai) {
+            $user = $pegawai->user;
+            $pegawai->delete();
+            if ($user) {
+                $user->delete();
+            }
+        });
 
         if ($request->wantsJson()) {
             return response()->json([

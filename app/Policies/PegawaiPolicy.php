@@ -12,8 +12,7 @@ class PegawaiPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'operator', 'kepsek', 'waka_kurikulum'])
-            || $user->can('pegawai.view');
+        return $user->hasRole(['super_admin', 'operator', 'kepsek', 'waka_kurikulum']);
     }
 
     /**
@@ -32,11 +31,7 @@ class PegawaiPolicy
         }
 
         // Guru / Wali Kelas can view self (R³ in PRD 4.2)
-        if ($user->pegawai && $user->pegawai->id === $pegawai->id) {
-            return true;
-        }
-
-        return $user->can('pegawai.view');
+        return $pegawai->user_id === $user->id;
     }
 
     /**

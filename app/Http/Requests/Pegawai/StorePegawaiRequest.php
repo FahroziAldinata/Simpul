@@ -23,10 +23,26 @@ class StorePegawaiRequest extends FormRequest
      */
     public function rules(): array
     {
+        $sekolahId = $this->user()?->hasRole('super_admin') ? session('sekolah_id') : $this->user()?->sekolah_id;
+
         return [
             'nama' => ['required', 'string', 'max:255'],
-            'nip' => ['nullable', 'string', 'max:30'],
-            'nuptk' => ['nullable', 'string', 'max:30'],
+            'nip' => [
+                'nullable',
+                'string',
+                'max:30',
+                Rule::unique('pegawai', 'nip')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at')),
+                Rule::unique('users', 'nip')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)),
+            ],
+            'nuptk' => [
+                'nullable',
+                'string',
+                'max:30',
+                Rule::unique('pegawai', 'nuptk')
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at')),
+            ],
             'jenis' => ['required', Rule::in(['guru', 'tu', 'kepsek'])],
             'status_kepegawaian' => ['required', Rule::in(['pns', 'pppk', 'gty', 'gtt', 'honorer'])],
             'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],

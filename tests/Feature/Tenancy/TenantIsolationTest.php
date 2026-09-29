@@ -52,6 +52,7 @@ class TenantIsolationTest extends TestCase
 
         $pegawaiA = Pegawai::withoutGlobalScopes()->create([
             'sekolah_id' => $sekolahA->id,
+            'user_id' => $userA->id,
             'nama' => 'Pegawai Sekolah A',
             'jenis' => 'guru',
             'status_kepegawaian' => 'pns',

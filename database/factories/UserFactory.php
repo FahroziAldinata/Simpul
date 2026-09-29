@@ -36,6 +36,7 @@ class UserFactory extends Factory
             'sekolah_id' => null,
             'nip' => null,
             'nama_lengkap' => null,
+            'must_change_password' => false,
         ];
     }
 

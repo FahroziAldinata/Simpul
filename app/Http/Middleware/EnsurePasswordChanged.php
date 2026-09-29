@@ -18,7 +18,9 @@ class EnsurePasswordChanged
     {
         $user = $request->user();
 
-        if ($user && $user->must_change_password) {
+        $mustChange = $user && array_key_exists('must_change_password', $user->getAttributes()) && $user->must_change_password;
+
+        if ($mustChange) {
             // Allowed routes: security password change page, password update, logout, password confirm
             if ($request->routeIs('security.edit')
                 || $request->routeIs('user-password.update')
