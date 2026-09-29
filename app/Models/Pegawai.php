@@ -73,6 +73,15 @@ class Pegawai extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::restoring(function (Pegawai $pegawai) {
+            if ($pegawai->user_id) {
+                User::withTrashed()->find($pegawai->user_id)?->restore();
+            }
+        });
+    }
+
     /**
      * @return BelongsTo<Sekolah, $this>
      */
@@ -86,7 +95,7 @@ class Pegawai extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     /**

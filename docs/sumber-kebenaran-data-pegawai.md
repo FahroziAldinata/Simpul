@@ -1,20 +1,20 @@
 # Sumber Kebenaran Tunggal (Single Source of Truth) — Data Pegawai vs Akun Pengguna
 
-Dokumen ini menjelaskan keputusan arsitektur terkait redundansi atribut `nama` dan `nip` antara tabel `pegawai` dan `users` di SIMPUL, penetapan sumber kebenaran utama, serta mekanisme sinkronisasi otomatis.
+Dokumen ini menjelaskan keputusan arsitektur terkait penataan atribut `nama`, `nip`, dan `email` antara tabel `pegawai` dan `users` di SIMPUL, penetapan sumber kebenaran utama, integritas audit log, serta mekanisme sinkronisasi otomatis dan soft-delete sesuai aturan PRD 1.2 dan D3 ("data tidak pernah hilang").
 
 ---
 
 ## 1. Penetapan Sumber Kebenaran (Single Source of Truth)
 
-> **Keputusan:** Tabel `pegawai` adalah **sumber kebenaran tunggal (Primary Source of Truth)** untuk seluruh data identitas pegawai, termasuk `nama` dan `nip`.
+> **Keputusan:** Tabel `pegawai` adalah **sumber kebenaran tunggal (Primary Source of Truth)** untuk seluruh data identitas dan kontak pegawai, termasuk `nama`, `nip`, dan `email`.
 
-Tabel `users` berperan sebagai **entitas akun autentikasi dan otorisasi (Identity & Access Management)**, bukan entitas profil induk kepegawaian.
+Tabel `users` berperan sebagai **entitas akun autentikasi dan otorisasi (Identity & Access Management / IAM)**, bukan entitas profil induk kepegawaian.
 
 ---
 
 ## 2. Mengapa Kolom Tersebut Ada di Kedua Tabel?
 
-Meskipun tabel `pegawai` menjadi acuan utama, kolom `name`, `nama_lengkap`, dan `nip` tetap dipertahankan di tabel `users` karena alasan teknis berikut:
+Meskipun tabel `pegawai` menjadi acuan utama, kolom `name`, `nama_lengkap`, `nip`, dan `email` tetap dipertahankan di tabel `users` karena alasan teknis berikut:
 
 ### a. Kompatibilitas Framework dan Starter Kit
 - Ekosistem Laravel (Fortify, Sanctum, Inertia starter kit) secara default bergantung pada `users.name` dan `users.email` untuk rendering profil header, breadcrumb pengguna, session state, dan penanganan autentikasi bawaan.
@@ -22,17 +22,41 @@ Meskipun tabel `pegawai` menjadi acuan utama, kolom `name`, `nama_lengkap`, dan 
 
 ### b. Fleksibilitas Multi-Aktor (Aktor Non-Pegawai)
 - SIMPUL melayani aktor yang tidak memiliki catatan kepegawaian, seperti `super_admin` platform dan akun `orang_tua` (wali siswa).
-- Jika `name` atau `nip` hanya berada di tabel `pegawai`, tabel `users` tidak akan mampu merepresentasikan identitas nama pengguna non-pegawai secara seragam.
+- Jika `name`, `nip`, atau `email` hanya berada di tabel `pegawai`, tabel `users` tidak akan mampu merepresentasikan identitas nama pengguna non-pegawai secara seragam.
 
 ### c. Mekanisme Multi-Identifier Login
 - Tabel `users` mendukung login ganda: login berbasis `email` dan login berbasis `nip`.
-- Indeks unik parsial `users_sekolah_id_nip_unique` pada tabel `users` memungkinkan pengecekan kredensial login NIP secara langsung pada layer autentikasi tanpa harus melakukan query silang ke tabel domain `pegawai`.
+- Indeks unik parsial `users_sekolah_id_nip_unique` dan `users_email_unique` pada tabel `users` memungkinkan pengecekan kredensial login secara langsung pada layer autentikasi tanpa harus melakukan query silang ke tabel domain `pegawai`.
+
+### d. Penanganan Atribut Email
+- `users.email` adalah kredensial login unik akun.
+- `pegawai.email` adalah email kontak dinas/kepegawaian.
+- **Arah Sinkronisasi Email:** Satu arah (*unidirectional*) dari `pegawai.email` disinkronkan ke `users.email` saat pembuatan (create) dan pembaruan (update) data pegawai.
 
 ---
 
-## 3. Mekanisme Sinkronisasi Otomatis
+## 3. Kebijakan Penghapusan & Integritas Audit (PRD 1.2 & D3)
 
-Untuk mencegah inkonsistensi data (data drift) antara kedua tabel, SIMPUL menerapkan sinkronisasi satu arah (*unidirectional synchronization*) dari `pegawai` ke `users`:
+Sesuai prinsip inti SIMPUL bahwa **"data tidak pernah hilang" (D3: SoftDeletes + status arsip)**:
+
+1. **Dual Soft-Delete (Bukan Hard-Delete):**
+   - Saat pegawai dihapus via `PegawaiController::destroy`, sistem melakukan **soft-delete** pada `Pegawai` (`pegawai.deleted_at`) dan secara bersamaan melakukan **soft-delete** pada akun `User` terkait (`users.deleted_at`).
+   - Baris record pengguna **TIDAK PERNAH DIHAPUS (hard-delete)** dari basis data.
+2. **Penonaktifan Akses Login:**
+   - Setelah akun `User` di-soft-delete, pengguna tidak dapat lagi melakukan login karena Eloquent user provider Laravel secara otomatis menambahkan kondisi `WHERE deleted_at IS NULL`.
+3. **Integritas Jejak Audit Log (`causer_id`):**
+   - Kolom `causer_id` pada tabel `activity_log` tetap utuh merujuk ke baris record `users` terkait.
+   - Relasi audit historis tidak terputus (*no broken links / null causer*) karena baris pengguna tetap tersimpan di tabel `users`.
+4. **Pembebasan Keunikan Email dan NIP:**
+   - Keunikan `email` dan `nip` ditegakkan menggunakan **partial unique index** (`WHERE deleted_at IS NULL`), persis seperti pola NISN pada siswa.
+   - Ketika seorang pegawai dinonaktifkan (di-soft-delete), email atau NIP tersebut dapat digunakan kembali bila diperlukan di masa mendatang tanpa menimbulkan pelanggaran konstrain basis data.
+5. **Pemulihan Otomatis (Restore):**
+   - Model `Pegawai` dilengkapi event hook `restoring` di method `booted()`.
+   - Saat `$pegawai->restore()` dijalankan, akun pengguna terkait (`$pegawai->user()->withTrashed()`) otomatis di-restore dan diaktifkan kembali.
+
+---
+
+## 4. Mekanisme Sinkronisasi Otomatis
 
 ```mermaid
 sequenceDiagram
@@ -45,24 +69,9 @@ sequenceDiagram
     Op->>PC: Simpan / Ubah Data Pegawai
     Note over PC: Validasi Request (StorePegawaiRequest / UpdatePegawaiRequest)
     critical Transaksi Database (DB::transaction)
-        PC->>P: Simpan / Update nama & nip
-        PC->>U: Sinkronkan users.name, nama_lengkap, dan nip
+        PC->>P: Simpan / Update nama, nip, email
+        PC->>U: Sinkronkan users.name, nama_lengkap, nip, email
         PC->>U: Sinkronkan peran (syncRoles)
     end
     PC-->>Op: Respons Berhasil
 ```
-
-### Aturan Sinkronisasi:
-1. **Pembuatan Pegawai Baru (`PegawaiController::store`):**
-   - Membuat akun `users` dengan `name = pegawai.nama`, `nama_lengkap = pegawai.nama`, dan `nip = pegawai.nip`.
-   - Mengisi flag `must_change_password = true` dan meng-generate kata sandi awal acak yang hanya tampil sekali.
-   - Menetapkan peran dasar (`guru`, `operator`, `kepsek`) ditambah peran opsional penugasan (`waka_kurikulum`, `wali_kelas`).
-2. **Pembaruan Pegawai (`PegawaiController::update`):**
-   - Pembaruan dilakukan pada record `pegawai`.
-   - Dalam transaksi database yang sama, jika pegawai memiliki akun `user`, sistem otomatis memperbarui `user.name`, `user.nama_lengkap`, dan `user.nip`.
-3. **Penghapusan Pegawai (`PegawaiController::destroy`):**
-   - Saat pegawai dihapus, akun `user` yang tertaut dihapus dalam transaksi yang sama.
-   - Ini mencegah adanya "akun hantu" (ghost account) dan membebaskan batasan unik email/NIP di tabel `users`.
-4. **Validasi Unik Tenant-Scoped:**
-   - Baik `StorePegawaiRequest` maupun `UpdatePegawaiRequest` menegakkan aturan unik `nip` di kedua tabel secara serentak (`pegawai.nip` dan `users.nip`) terisolasi per sekolah (`sekolah_id`), dengan mengabaikan catatan saat ini pada operasi pembaruan.
-   - Kolom `nip` dan `nuptk` bersifat `nullable`, sehingga validasi unik hanya aktif apabila field tersebut diisi (multiple `null` diperbolehkan).

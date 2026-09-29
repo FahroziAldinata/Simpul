@@ -34,7 +34,7 @@ class StorePegawaiRequest extends FormRequest
                 Rule::unique('pegawai', 'nip')
                     ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at')),
                 Rule::unique('users', 'nip')
-                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)),
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at')),
             ],
             'nuptk' => [
                 'nullable',
@@ -51,7 +51,12 @@ class StorePegawaiRequest extends FormRequest
             'agama' => ['nullable', 'string', 'max:50'],
             'alamat' => ['nullable', 'string'],
             'no_hp' => ['nullable', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->whereNull('deleted_at'),
+            ],
             'jam_maks_per_minggu' => ['nullable', 'integer', 'min:1', 'max:60'],
             'hari_tidak_mengajar' => ['nullable', 'array'],
             'hari_tidak_mengajar.*' => [Rule::in(['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'])],

@@ -38,7 +38,7 @@ class UpdatePegawaiRequest extends FormRequest
                     ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at'))
                     ->ignore($pegawaiId),
                 Rule::unique('users', 'nip')
-                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId))
+                    ->where(fn ($query) => $query->where('sekolah_id', $sekolahId)->whereNull('deleted_at'))
                     ->ignore($userId),
             ],
             'nuptk' => [
@@ -61,7 +61,7 @@ class UpdatePegawaiRequest extends FormRequest
                 'required',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($userId),
+                Rule::unique('users', 'email')->ignore($userId)->whereNull('deleted_at'),
             ],
             'jam_maks_per_minggu' => ['nullable', 'integer', 'min:1', 'max:60'],
             'hari_tidak_mengajar' => ['nullable', 'array'],

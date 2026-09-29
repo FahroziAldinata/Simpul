@@ -12,6 +12,7 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
 class PegawaiCrudTest extends TestCase
@@ -245,9 +246,96 @@ class PegawaiCrudTest extends TestCase
             'id' => $this->guruPegawai->id,
         ]);
 
-        $this->assertDatabaseMissing('users', [
+        $this->assertSoftDeleted('users', [
             'id' => $this->guruUser->id,
         ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $this->guruUser->id,
+        ]);
+    }
+
+    public function test_pegawai_soft_delete_preserves_user_and_audit_log_and_restore_reactivates_user(): void
+    {
+        // 1. Create a user and pegawai with known password
+        $user = User::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'name' => 'Guru Audit',
+            'email' => 'guru.audit@sekolah.sch.id',
+            'password' => bcrypt('Password123!'),
+        ]);
+        $user->assignRole('guru');
+
+        $pegawai = Pegawai::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'user_id' => $user->id,
+            'nama' => 'Guru Audit',
+            'email' => 'guru.audit@sekolah.sch.id',
+        ]);
+
+        // 2. User creates an activity log entry
+        activity()
+            ->causedBy($user)
+            ->performedOn($pegawai)
+            ->log('Melakukan input nilai siswa');
+
+        $activity = Activity::where('causer_id', (string) $user->id)->first();
+        $this->assertNotNull($activity);
+        $this->assertEquals('Melakukan input nilai siswa', $activity->description);
+
+        // 3. User can login initially
+        $loginResponse = $this->post(route('login.store'), [
+            'email' => 'guru.audit@sekolah.sch.id',
+            'password' => 'Password123!',
+        ]);
+        $loginResponse->assertRedirect();
+        $this->assertAuthenticatedAs($user);
+
+        // Logout before delete
+        $this->post(route('logout'));
+        $this->assertGuest();
+
+        // 4. Operator soft-deletes the Pegawai
+        $deleteResponse = $this->actingAs($this->operator)
+            ->delete(route('pegawai.destroy', $pegawai->id));
+        $deleteResponse->assertRedirect();
+
+        // Pegawai and User are soft-deleted, but row remains in DB
+        $this->assertSoftDeleted('pegawai', ['id' => $pegawai->id]);
+        $this->assertSoftDeleted('users', ['id' => $user->id]);
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+
+        // Logout operator so session is guest
+        $this->post(route('logout'));
+        $this->assertGuest();
+
+        // 5. Soft-deleted user CANNOT login
+        $this->post(route('login.store'), [
+            'email' => 'guru.audit@sekolah.sch.id',
+            'password' => 'Password123!',
+        ]);
+        $this->assertGuest();
+
+        // 6. Audit log remains intact and still points to the user
+        $activityAfterDelete = Activity::where('causer_id', (string) $user->id)->first();
+        $this->assertNotNull($activityAfterDelete);
+        $this->assertEquals((string) $user->id, (string) $activityAfterDelete->causer_id);
+        $resolvedUser = User::withTrashed()->find($activityAfterDelete->causer_id);
+        $this->assertNotNull($resolvedUser);
+        $this->assertEquals('Guru Audit', $resolvedUser->name);
+
+        // 7. Restore pegawai -> automatically restores linked user
+        $pegawai->restore();
+        $this->assertNotSoftDeleted('pegawai', ['id' => $pegawai->id]);
+        $this->assertNotSoftDeleted('users', ['id' => $user->id]);
+
+        // 8. User can login again
+        $reloginResponse = $this->post(route('login.store'), [
+            'email' => 'guru.audit@sekolah.sch.id',
+            'password' => 'Password123!',
+        ]);
+        $reloginResponse->assertRedirect();
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_duplicate_nip_or_nuptk_in_same_school_rejected_but_allowed_across_schools(): void
