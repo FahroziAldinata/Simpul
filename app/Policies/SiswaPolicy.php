@@ -150,4 +150,31 @@ class SiswaPolicy
 
         return $user->hasRole(['super_admin', 'operator']) || $user->can('siswa.delete');
     }
+
+    /**
+     * Determine whether the user can view student mutation history.
+     */
+    public function viewMutasi(User $user, Siswa $siswa): bool
+    {
+        return $this->view($user, $siswa);
+    }
+
+    /**
+     * Determine whether the user can manage (execute or cancel) student mutations.
+     */
+    public function manageMutasi(User $user, Siswa $siswa): bool
+    {
+        // Tenant isolation
+        $activeSekolahId = $user->hasRole('super_admin') ? session('sekolah_id') : $user->sekolah_id;
+        if ($activeSekolahId && $siswa->sekolah_id !== $activeSekolahId) {
+            return false;
+        }
+
+        // Wali Kelas is strictly barred from student mutations
+        if ($user->hasRole('wali_kelas') && ! $user->hasRole(['super_admin', 'operator'])) {
+            return false;
+        }
+
+        return $user->hasRole(['super_admin', 'operator']) || $user->can('siswa.update');
+    }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\BerkasSiswaController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\MataPelajaranController;
+use App\Http\Controllers\MutasiSiswaController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PeriodeAktifController;
 use App\Http\Controllers\RombelController;
@@ -140,6 +141,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('siswa/{siswa}/berkas', [BerkasSiswaController::class, 'store'])->name('siswa.berkas.store');
     Route::get('siswa/{siswa}/berkas/{jenis}/url', [BerkasSiswaController::class, 'showUrl'])->name('siswa.berkas.url');
     Route::delete('siswa/{siswa}/berkas/{jenis}', [BerkasSiswaController::class, 'destroy'])->name('siswa.berkas.destroy');
+
+    // Mutasi Siswa & Riwayat Kelas (T-06.02 & T-06.03)
+    Route::get('siswa/{siswa}/mutasi', [MutasiSiswaController::class, 'index'])->name('siswa.mutasi.index');
+    Route::post('siswa/{siswa}/mutasi', [MutasiSiswaController::class, 'store'])->name('siswa.mutasi.store');
+    Route::post('mutasi/{mutasi}/batal', [MutasiSiswaController::class, 'batalkan'])->name('siswa.mutasi.batal');
 });
 
 require __DIR__.'/settings.php';
