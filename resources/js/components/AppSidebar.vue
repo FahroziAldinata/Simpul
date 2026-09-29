@@ -58,7 +58,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (can('pegawai.view')) {
         items.push({
             title: 'Kepegawaian',
-            href: '#',
+            href: '/pegawai',
             icon: Users,
         });
     }
