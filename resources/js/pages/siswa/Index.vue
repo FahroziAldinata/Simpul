@@ -4,6 +4,7 @@ import {
     ArrowRightLeft,
     Columns3,
     CreditCard,
+    FileSpreadsheet,
     Filter,
     GraduationCap,
     MoreHorizontal,
@@ -14,13 +15,17 @@ import {
     Search,
     Trash2,
     UserCheck,
+    UserCog,
     UserX,
+    X,
 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
+import AksiMassalDialogs from '@/components/Siswa/AksiMassalDialogs.vue';
 import MutasiDialog from '@/components/Siswa/MutasiDialog.vue';
 import SiswaFormDialog from '@/components/Siswa/SiswaFormDialog.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -126,6 +131,7 @@ const visibleColumnKeys = ref<string[]>(
 );
 
 const columnDefinitions: DataTableColumn[] = [
+    { key: 'select', label: '', sortable: false, headerClass: 'w-10 px-3 text-center', class: 'w-10 px-3 text-center' },
     { key: 'nama', label: 'Nama Siswa', sortable: true, sticky: true },
     { key: 'nisn', label: 'NISN', sortable: true, numeric: true },
     { key: 'nik', label: 'NIK', sortable: true, numeric: true },
@@ -172,10 +178,112 @@ function savePreferences() {
 
 const activeColumns = computed<DataTableColumn[]>(() => {
     return columnDefinitions.filter((col) => {
+        if (col.key === 'select') return props.canManage;
         if (col.key === 'nama' || col.key === 'actions') return true;
         return visibleColumnKeys.value.includes(col.key);
     });
 });
+
+// Bulk selection state (T-06.07)
+const selectedIds = ref<string[]>([]);
+const isBulkRombelOpen = ref(false);
+const isBulkStatusOpen = ref(false);
+
+const isAllSelected = computed(() => {
+    if (props.siswa.data.length === 0) return false;
+    return props.siswa.data.every((s) => selectedIds.value.includes(s.id));
+});
+
+const isPartiallySelected = computed(() => {
+    if (isAllSelected.value) return false;
+    return props.siswa.data.some((s) => selectedIds.value.includes(s.id));
+});
+
+function toggleSelectAll(checked: boolean | 'indeterminate') {
+    if (checked === true) {
+        const pageIds = props.siswa.data.map((s) => s.id);
+        const merged = new Set([...selectedIds.value, ...pageIds]);
+        selectedIds.value = Array.from(merged);
+    } else {
+        const pageIds = new Set(props.siswa.data.map((s) => s.id));
+        selectedIds.value = selectedIds.value.filter((id) => !pageIds.has(id));
+    }
+}
+
+function toggleSelectRow(id: string, checked: boolean | 'indeterminate') {
+    if (checked === true) {
+        if (!selectedIds.value.includes(id)) {
+            selectedIds.value.push(id);
+        }
+    } else {
+        selectedIds.value = selectedIds.value.filter((i) => i !== id);
+    }
+}
+
+function exportSelected() {
+    if (selectedIds.value.length === 0) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/siswa/aksi-massal/ekspor';
+
+    const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
+    if (token) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = token;
+        form.appendChild(csrfInput);
+    }
+
+    selectedIds.value.forEach((id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'siswa_ids[]';
+        input.value = id;
+        form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
+function exportWithFilters() {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/siswa/aksi-massal/ekspor';
+
+    const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
+    if (token) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = token;
+        form.appendChild(csrfInput);
+    }
+
+    const filters: Record<string, string> = {
+        search: search.value,
+        rombel_id: rombelId.value,
+        status: status.value,
+        tingkat: tingkat.value,
+    };
+
+    Object.entries(filters).forEach(([k, v]) => {
+        if (v) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = k;
+            input.value = v;
+            form.appendChild(input);
+        }
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
 
 const paginationData = computed<DataTablePagination>(() => ({
     currentPage: props.siswa.current_page,
@@ -371,6 +479,18 @@ function executeDelete() {
                     </a>
                 </Button>
 
+                <!-- Ekspor Excel Button (Operator & Super Admin) -->
+                <Button
+                    v-if="canManage"
+                    variant="outline"
+                    size="sm"
+                    class="h-9"
+                    @click="exportWithFilters"
+                >
+                    <FileSpreadsheet class="h-4 w-4 mr-1.5" />
+                    Ekspor Excel
+                </Button>
+
                 <!-- Tambah Siswa Button (Operator & Super Admin) -->
                 <Button v-if="canManage" size="sm" class="h-9" @click="openCreate">
                     <Plus class="h-4 w-4 mr-1.5" />
@@ -516,6 +636,26 @@ function executeDelete() {
             @page-change="handlePageChange"
             @update:per-page="(val: number) => (perPage = val)"
         >
+            <!-- Header: Select All Checkbox -->
+            <template #header-select>
+                <div class="flex items-center justify-center">
+                    <Checkbox
+                        :model-value="isAllSelected ? true : (isPartiallySelected ? 'indeterminate' : false)"
+                        @update:model-value="toggleSelectAll"
+                    />
+                </div>
+            </template>
+
+            <!-- Cell: Select Checkbox -->
+            <template #cell-select="{ row }: { row: SiswaItem }">
+                <div class="flex items-center justify-center" @click.stop>
+                    <Checkbox
+                        :model-value="selectedIds.includes(row.id)"
+                        @update:model-value="(val: boolean | 'indeterminate') => toggleSelectRow(row.id, val)"
+                    />
+                </div>
+            </template>
+
             <!-- Cell: Nama & Kelengkapan Status -->
             <template #cell-nama="{ row }: { row: SiswaItem }">
                 <div class="flex items-center gap-2.5 min-w-[200px]">
@@ -691,4 +831,80 @@ function executeDelete() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+
+    <!-- Floating / Sticky Bulk Action Toolbar -->
+    <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="transform translate-y-4 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform translate-y-4 opacity-0"
+    >
+        <div
+            v-if="selectedIds.length > 0 && canManage"
+            class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 flex items-center gap-3 bg-foreground text-background px-4 py-2.5 rounded-full shadow-2xl border border-border/40 backdrop-blur-md"
+        >
+            <div class="flex items-center gap-2 pr-2 border-r border-background/20 text-xs font-semibold">
+                <span class="inline-flex items-center justify-center h-5 px-1.5 rounded-full bg-primary text-primary-foreground font-mono">
+                    {{ selectedIds.length }}
+                </span>
+                <span>Siswa Dipilih</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    class="h-8 rounded-full text-xs font-medium gap-1.5 bg-background/15 hover:bg-background/25 text-background border-0"
+                    @click="isBulkRombelOpen = true"
+                >
+                    <ArrowRightLeft class="h-3.5 w-3.5" />
+                    Ubah Rombel
+                </Button>
+
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    class="h-8 rounded-full text-xs font-medium gap-1.5 bg-background/15 hover:bg-background/25 text-background border-0"
+                    @click="isBulkStatusOpen = true"
+                >
+                    <UserCog class="h-3.5 w-3.5" />
+                    Ubah Status
+                </Button>
+
+                <Button
+                    size="sm"
+                    variant="secondary"
+                    class="h-8 rounded-full text-xs font-medium gap-1.5 bg-background/15 hover:bg-background/25 text-background border-0"
+                    @click="exportSelected"
+                >
+                    <FileSpreadsheet class="h-3.5 w-3.5" />
+                    Ekspor Excel
+                </Button>
+
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    class="h-7 w-7 rounded-full text-background/70 hover:text-background hover:bg-background/20"
+                    @click="selectedIds = []"
+                    title="Batal Pilihan"
+                >
+                    <X class="h-4 w-4" />
+                    <span class="sr-only">Batal</span>
+                </Button>
+            </div>
+        </div>
+    </Transition>
+
+    <!-- Aksi Massal Dialogs -->
+    <AksiMassalDialogs
+        :selected-ids="selectedIds"
+        :rombel-list="rombelList"
+        :open-rombel="isBulkRombelOpen"
+        :open-status="isBulkStatusOpen"
+        @update:open-rombel="(val: boolean) => (isBulkRombelOpen = val)"
+        @update:open-status="(val: boolean) => (isBulkStatusOpen = val)"
+        @success="() => { selectedIds = []; router.reload({ only: ['siswa'] }); }"
+    />
 </template>

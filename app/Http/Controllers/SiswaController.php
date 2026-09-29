@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusSiswa;
 use App\Http\Requests\Siswa\StoreSiswaRequest;
 use App\Http\Requests\Siswa\UpdateSiswaRequest;
 use App\Http\Requests\Siswa\UpdateSiswaWaliKelasRequest;
@@ -110,12 +111,13 @@ class SiswaController extends Controller
         $perPage = in_array((int) $request->input('per_page'), $allowedPerPage, true) ? (int) $request->input('per_page') : 25;
         $siswa = $query->paginate($perPage)->withQueryString();
 
-        // Rombel List untuk filter
+        // Rombel List untuk filter & aksi massal
         $rombelList = Rombel::query()
             ->when($activeSemester, fn ($q) => $q->where('semester_id', $activeSemester->id))
+            ->withCount(['anggotaRombel as jumlah_siswa' => fn ($q) => $q->whereHas('siswa', fn ($s) => $s->where('status', StatusSiswa::Aktif))])
             ->orderBy('tingkat')
             ->orderBy('nama')
-            ->get(['id', 'nama', 'tingkat']);
+            ->get(['id', 'nama', 'tingkat', 'kuota']);
 
         return Inertia::render('siswa/Index', [
             'siswa' => $siswa,

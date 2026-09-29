@@ -78,18 +78,20 @@ function handlePerPageChange(event: Event) {
                                 'whitespace-nowrap px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground select-none'
                             ]"
                         >
-                            <button
-                                v-if="col.sortable"
-                                type="button"
-                                class="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors cursor-pointer"
-                                @click="handleSort(col.key)"
-                            >
-                                <span>{{ col.label }}</span>
-                                <ArrowUp v-if="sortBy === col.key && sortOrder === 'asc'" class="h-3.5 w-3.5 text-primary" />
-                                <ArrowDown v-else-if="sortBy === col.key && sortOrder === 'desc'" class="h-3.5 w-3.5 text-primary" />
-                                <ArrowUpDown v-else class="h-3.5 w-3.5 opacity-40 hover:opacity-100" />
-                            </button>
-                            <span v-else>{{ col.label }}</span>
+                            <slot :name="`header-${col.key}`" :column="col">
+                                <button
+                                    v-if="col.sortable"
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5 font-medium hover:text-foreground transition-colors cursor-pointer"
+                                    @click="handleSort(col.key)"
+                                >
+                                    <span>{{ col.label }}</span>
+                                    <ArrowUp v-if="sortBy === col.key && sortOrder === 'asc'" class="h-3.5 w-3.5 text-primary" />
+                                    <ArrowDown v-else-if="sortBy === col.key && sortOrder === 'desc'" class="h-3.5 w-3.5 text-primary" />
+                                    <ArrowUpDown v-else class="h-3.5 w-3.5 opacity-40 hover:opacity-100" />
+                                </button>
+                                <span v-else>{{ col.label }}</span>
+                            </slot>
                         </TableHead>
 
                         <!-- Actions Column Header -->

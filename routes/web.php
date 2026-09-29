@@ -15,6 +15,7 @@ use App\Http\Controllers\RombelController;
 use App\Http\Controllers\RuangController;
 use App\Http\Controllers\SekolahAktifController;
 use App\Http\Controllers\SekolahController;
+use App\Http\Controllers\SiswaAksiMassalController;
 use App\Http\Controllers\SiswaController;
 use App\Http\Controllers\TahunAjaranController;
 use App\Http\Controllers\UserPreferenceController;
@@ -159,6 +160,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Kartu Digital PDF Siswa & Rombel (T-06.06)
     Route::get('siswa/{siswa}/kartu', [KartuSiswaController::class, 'show'])->name('siswa.kartu');
     Route::get('rombel/{rombel}/kartu', [KartuSiswaController::class, 'rombel'])->name('rombel.kartu');
+
+    // Aksi Massal Data Siswa (T-06.07)
+    Route::post('siswa/aksi-massal/rombel', [SiswaAksiMassalController::class, 'ubahRombel'])->name('siswa.aksi-massal.rombel');
+    Route::post('siswa/aksi-massal/status', [SiswaAksiMassalController::class, 'ubahStatus'])->name('siswa.aksi-massal.status');
+    Route::match(['get', 'post'], 'siswa/aksi-massal/ekspor', [SiswaAksiMassalController::class, 'ekspor'])->name('siswa.aksi-massal.ekspor');
 });
 
 require __DIR__.'/settings.php';

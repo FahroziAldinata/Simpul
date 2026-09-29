@@ -56,6 +56,8 @@ export interface RombelOption {
     id: string;
     nama: string;
     tingkat: number;
+    kuota?: number | null;
+    jumlah_siswa?: number | null;
 }
 
 export interface SemesterInfo {
