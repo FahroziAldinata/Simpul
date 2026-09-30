@@ -149,6 +149,11 @@ class MutasiService
 
             $siswa->save();
 
+            // Mutasi Keluar, Lulus, DropOut membebaskan NISN secara otomatis lewat soft delete
+            if (in_array($tipe, [JenisMutasi::Keluar, JenisMutasi::Lulus, JenisMutasi::DropOut], true)) {
+                $siswa->delete();
+            }
+
             return MutasiSiswa::create([
                 'sekolah_id' => $siswa->sekolah_id,
                 'siswa_id' => $siswa->id,
@@ -200,8 +205,38 @@ class MutasiService
                 ]);
             }
 
-            /** @var Siswa $siswa */
-            $siswa = $mutasi->siswa;
+            /** @var Siswa|null $siswa */
+            $siswa = $mutasi->siswa ?? Siswa::withTrashed()->find($mutasi->siswa_id);
+
+            if (! $siswa) {
+                throw ValidationException::withMessages([
+                    'mutasi' => 'Data siswa tidak ditemukan.',
+                ]);
+            }
+
+            // Jika siswa berstatus soft-deleted (karena mutasi keluar/lulus/drop_out), restore siswa
+            if ($siswa->trashed()) {
+                // Cek apakah NISN sudah dipakai oleh siswa aktif di sekolah lain / tenant manapun
+                $conflict = Siswa::withoutGlobalScopes()
+                    ->where('nisn', $siswa->nisn)
+                    ->whereNull('deleted_at')
+                    ->where('id', '!=', $siswa->id)
+                    ->exists();
+
+                if ($conflict) {
+                    throw ValidationException::withMessages([
+                        'mutasi' => 'Mutasi ini tidak bisa dibatalkan karena NISN siswa sudah aktif digunakan di sekolah lain.',
+                    ]);
+                }
+
+                try {
+                    $siswa->restore();
+                } catch (\Throwable $e) {
+                    throw ValidationException::withMessages([
+                        'mutasi' => 'Mutasi ini tidak bisa dibatalkan karena NISN siswa sudah aktif digunakan di sekolah lain.',
+                    ]);
+                }
+            }
 
             // Kembalikan status siswa ke status_sebelum
             if ($mutasi->status_sebelum !== null) {

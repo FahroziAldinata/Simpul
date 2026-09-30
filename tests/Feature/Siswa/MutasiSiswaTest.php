@@ -203,8 +203,9 @@ class MutasiSiswaTest extends TestCase
 
         $responseKeluar->assertStatus(201);
 
-        // Siswa status becomes pindah
-        $this->assertEquals(StatusSiswa::Pindah, $this->siswa->fresh()->status);
+        // Siswa status becomes pindah and siswa is soft-deleted
+        $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
+        $this->assertEquals(StatusSiswa::Pindah, Siswa::withTrashed()->find($this->siswa->id)?->status);
 
         // US-13 AC1: Anggota rombel row MUST NOT be deleted (historical record remains intact)
         $this->assertDatabaseHas('anggota_rombel', [
@@ -231,7 +232,8 @@ class MutasiSiswaTest extends TestCase
             ]);
 
         $responseLulus->assertStatus(201);
-        $this->assertEquals(StatusSiswa::Lulus, $siswaLulus->fresh()->status);
+        $this->assertSoftDeleted('siswa', ['id' => $siswaLulus->id]);
+        $this->assertEquals(StatusSiswa::Lulus, Siswa::withTrashed()->find($siswaLulus->id)?->status);
         $this->assertDatabaseHas('anggota_rombel', ['siswa_id' => $siswaLulus->id]);
 
         // 3. Test Mutasi Drop Out
@@ -251,7 +253,8 @@ class MutasiSiswaTest extends TestCase
             ]);
 
         $responseDO->assertStatus(201);
-        $this->assertEquals(StatusSiswa::DropOut, $siswaDO->fresh()->status);
+        $this->assertSoftDeleted('siswa', ['id' => $siswaDO->id]);
+        $this->assertEquals(StatusSiswa::DropOut, Siswa::withTrashed()->find($siswaDO->id)?->status);
         $this->assertDatabaseHas('anggota_rombel', ['siswa_id' => $siswaDO->id]);
     }
 
@@ -610,5 +613,122 @@ class MutasiSiswaTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['tanggal', 'alasan', 'sekolah_tujuan']);
+    }
+
+    public function test_pembatalan_mutasi_keluar_berhasil_merestore_siswa_jika_nisn_masih_bebas(): void
+    {
+        AnggotaRombel::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $this->semesterAktif->id,
+            'siswa_id' => $this->siswa->id,
+            'rombel_id' => $this->rombelA->id,
+        ]);
+
+        $this->actingAs($this->operator)
+            ->postJson("/siswa/{$this->siswa->id}/mutasi", [
+                'tipe' => JenisMutasi::Keluar->value,
+                'tanggal' => '2026-09-20',
+                'sekolah_tujuan' => 'SMA Negeri 5 Bandung',
+                'alasan' => 'Ikut dinas ortu',
+            ])
+            ->assertStatus(201);
+
+        $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
+
+        $mutasi = MutasiSiswa::where('siswa_id', $this->siswa->id)->latest('id')->firstOrFail();
+
+        $responseBatal = $this->actingAs($this->operator)
+            ->postJson("/mutasi/{$mutasi->id}/batal", [
+                'alasan_batal' => 'Batal pindah sekolah',
+            ]);
+
+        $responseBatal->assertStatus(200);
+        $this->assertNotSoftDeleted('siswa', ['id' => $this->siswa->id]);
+        $this->assertEquals(StatusSiswa::Aktif, $this->siswa->fresh()->status);
+    }
+
+    public function test_pembatalan_mutasi_keluar_ditolak_dengan_pesan_jelas_jika_nisn_sudah_dipakai_sekolah_lain(): void
+    {
+        AnggotaRombel::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $this->semesterAktif->id,
+            'siswa_id' => $this->siswa->id,
+            'rombel_id' => $this->rombelA->id,
+        ]);
+
+        $this->actingAs($this->operator)
+            ->postJson("/siswa/{$this->siswa->id}/mutasi", [
+                'tipe' => JenisMutasi::Keluar->value,
+                'tanggal' => '2026-09-20',
+                'sekolah_tujuan' => 'SMA Negeri 5 Bandung',
+                'alasan' => 'Ikut dinas ortu',
+            ])
+            ->assertStatus(201);
+
+        $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
+
+        // Sekolah lain mendaftarkan siswa baru dengan NISN yang sama
+        $sekolahLain = Sekolah::factory()->create();
+        Siswa::factory()->create([
+            'sekolah_id' => $sekolahLain->id,
+            'nisn' => $this->siswa->nisn,
+            'status' => StatusSiswa::Aktif,
+        ]);
+
+        $mutasi = MutasiSiswa::where('siswa_id', $this->siswa->id)->latest('id')->firstOrFail();
+
+        $responseBatal = $this->actingAs($this->operator)
+            ->postJson("/mutasi/{$mutasi->id}/batal", [
+                'alasan_batal' => 'Batal pindah sekolah',
+            ]);
+
+        $responseBatal->assertStatus(422);
+        $responseBatal->assertJsonValidationErrors(['mutasi']);
+        $this->assertEquals(
+            'Mutasi ini tidak bisa dibatalkan karena NISN siswa sudah aktif digunakan di sekolah lain.',
+            $responseBatal->json('errors.mutasi.0')
+        );
+
+        $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
+    }
+
+    public function test_riwayat_kelas_dan_mutasi_siswa_soft_deleted_tetap_bisa_diakses(): void
+    {
+        AnggotaRombel::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $this->semesterAktif->id,
+            'siswa_id' => $this->siswa->id,
+            'rombel_id' => $this->rombelA->id,
+        ]);
+
+        $this->actingAs($this->operator)
+            ->postJson("/siswa/{$this->siswa->id}/mutasi", [
+                'tipe' => JenisMutasi::Keluar->value,
+                'tanggal' => '2026-09-20',
+                'sekolah_tujuan' => 'SMA Negeri 5 Bandung',
+                'alasan' => 'Ikut dinas ortu',
+            ])
+            ->assertStatus(201);
+
+        $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
+
+        // 1. Akses endpoint mutasi & riwayat kelas
+        $responseMutasi = $this->actingAs($this->operator)
+            ->getJson("/siswa/{$this->siswa->id}/mutasi");
+
+        $responseMutasi->assertOk();
+        $responseMutasi->assertJsonStructure([
+            'mutasi',
+            'riwayat_kelas',
+            'status',
+        ]);
+        $this->assertCount(1, $responseMutasi->json('mutasi'));
+        $this->assertCount(1, $responseMutasi->json('riwayat_kelas'));
+
+        // 2. Akses halaman detail siswa (siswa.show)
+        $responseDetail = $this->actingAs($this->operator)
+            ->get(route('siswa.show', $this->siswa->id));
+
+        $responseDetail->assertOk();
     }
 }

@@ -26,7 +26,7 @@ class MutasiSiswaController extends Controller
         }
 
         /** @var Siswa|null $siswa */
-        $siswa = Siswa::withoutGlobalScopes()->find($siswaId);
+        $siswa = Siswa::withoutGlobalScopes()->withTrashed()->find($siswaId);
         if (! $siswa || $siswa->sekolah_id !== $sekolahId) {
             abort(404, 'Data siswa tidak ditemukan.');
         }
@@ -45,7 +45,7 @@ class MutasiSiswaController extends Controller
         }
 
         /** @var MutasiSiswa|null $mutasi */
-        $mutasi = MutasiSiswa::withoutGlobalScopes()->with(['siswa', 'semester'])->find($mutasiId);
+        $mutasi = MutasiSiswa::withoutGlobalScopes()->with(['siswa' => fn ($q) => $q->withTrashed(), 'semester'])->find($mutasiId);
         if (! $mutasi || $mutasi->sekolah_id !== $sekolahId) {
             abort(404, 'Data mutasi tidak ditemukan.');
         }
@@ -72,7 +72,7 @@ class MutasiSiswaController extends Controller
 
         $riwayatKelas = $siswa->anggotaRombel()
             ->with([
-                'rombel:id,nama,tingkat',
+                'rombel:id,nama,tingkat,wali_kelas_id',
                 'rombel.waliKelas:id,nama',
                 'semester:id,nama,is_aktif',
             ])
