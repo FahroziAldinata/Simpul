@@ -142,8 +142,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('throttle:30,1')
         ->name('siswa.check-nisn');
     // Impor Data Siswa (T-07)
-    Route::get('siswa/impor/template', [ImporSiswaController::class, 'downloadTemplate'])
-        ->name('siswa.impor.template');
+    Route::middleware('role:super_admin|operator')->group(function () {
+        Route::get('siswa/impor', [ImporSiswaController::class, 'index'])->name('siswa.impor.index');
+        Route::get('siswa/impor/template', [ImporSiswaController::class, 'downloadTemplate'])->name('siswa.impor.template');
+        Route::post('siswa/impor/upload', [ImporSiswaController::class, 'upload'])->name('siswa.impor.upload');
+        Route::get('siswa/impor/{batch}/mapping', [ImporSiswaController::class, 'showMapping'])->name('siswa.impor.mapping');
+        Route::post('siswa/impor/{batch}/mapping', [ImporSiswaController::class, 'saveMapping'])->name('siswa.impor.mapping.save');
+        Route::get('siswa/impor/{batch}/preview', [ImporSiswaController::class, 'showPreview'])->name('siswa.impor.preview');
+        Route::put('siswa/impor/{batch}/rows/{row}', [ImporSiswaController::class, 'updateRow'])->name('siswa.impor.rows.update');
+        Route::post('siswa/impor/{batch}/rows/{row}/resolusi', [ImporSiswaController::class, 'resolveDuplicate'])->name('siswa.impor.rows.resolusi');
+        Route::post('siswa/impor/{batch}/execute', [ImporSiswaController::class, 'execute'])->name('siswa.impor.execute');
+        Route::post('siswa/impor/{batch}/rollback', [ImporSiswaController::class, 'rollback'])->name('siswa.impor.rollback');
+        Route::get('siswa/impor/{batch}/export-failed', [ImporSiswaController::class, 'exportFailed'])->name('siswa.impor.export-failed');
+    });
 
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');
