@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsurePasswordChanged;
+use App\Http\Middleware\EnsureUserNotDeleted;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetSekolahAktif;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleAppearance::class,
             SetSekolahAktif::class,
+            EnsureUserNotDeleted::class,
             EnsurePasswordChanged::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,

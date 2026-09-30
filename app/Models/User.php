@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -86,5 +88,19 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     public function pegawai(): HasOne
     {
         return $this->hasOne(Pegawai::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleted(function (User $user) {
+            try {
+                $sessionTable = config('session.table', 'sessions');
+                if (Schema::hasTable($sessionTable)) {
+                    DB::table($sessionTable)->where('user_id', $user->id)->delete();
+                }
+            } catch (\Throwable $e) {
+                // Ignore if table does not exist or driver is not database
+            }
+        });
     }
 }

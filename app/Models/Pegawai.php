@@ -75,6 +75,15 @@ class Pegawai extends Model
 
     protected static function booted(): void
     {
+        static::deleted(function (Pegawai $pegawai) {
+            if ($pegawai->user_id) {
+                $user = User::find($pegawai->user_id);
+                if ($user && ! $user->trashed()) {
+                    $user->delete();
+                }
+            }
+        });
+
         static::restoring(function (Pegawai $pegawai) {
             if ($pegawai->user_id) {
                 User::withTrashed()->find($pegawai->user_id)?->restore();
