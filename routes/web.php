@@ -3,6 +3,7 @@
 use App\Http\Controllers\AlokasiJamMapelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BerkasSiswaController;
+use App\Http\Controllers\ImporSiswaController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\KartuPegawaiController;
@@ -140,6 +141,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('siswa/check-nisn', [SiswaController::class, 'checkNisn'])
         ->middleware('throttle:30,1')
         ->name('siswa.check-nisn');
+    // Impor Data Siswa (T-07)
+    Route::get('siswa/impor/template', [ImporSiswaController::class, 'downloadTemplate'])
+        ->name('siswa.impor.template');
+
     Route::get('siswa', [SiswaController::class, 'index'])->name('siswa.index');
     Route::post('siswa', [SiswaController::class, 'store'])->name('siswa.store');
     Route::get('siswa/{siswa}', [SiswaController::class, 'show'])->name('siswa.show');
