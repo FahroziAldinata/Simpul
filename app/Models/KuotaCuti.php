@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Model KuotaCuti — kuota cuti tahunan per pegawai per tahun ajaran (T-09.06).
  *
- * Known limitation (ADR-0000): reset otomatis menyusul Rollover Minggu 13.
+ * Known limitation (ADR-0000): reset otomatis dicatat sebagai backlog, belum dijadwalkan.
  * Untuk Minggu 9, baris dibuat saat diperlukan oleh IzinApprovalService
  * atau dapat dikelola Operator.
  *

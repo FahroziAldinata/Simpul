@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * terpakai: dihitung dari hari pengajuan disetujui dengan mengurangi_kuota_cuti=true
  *
  * Catatan (ADR-0000 konsekuensi): reset otomatis saat rollover tahun ajaran
- * baru diimplementasi di Minggu 13. Untuk Minggu 9, baris baru dibuat manual
+ * dicatat sebagai backlog, belum dijadwalkan. Untuk Minggu 9, baris baru dibuat manual
  * oleh Operator atau saat Rollover.
  */
 return new class extends Migration

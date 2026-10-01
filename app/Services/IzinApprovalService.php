@@ -15,6 +15,7 @@ use App\Models\TahunAjaran;
 use App\Models\User;
 use App\Notifications\PengajuanIzinMenungguPersetujuan;
 use App\Notifications\StatusPengajuanIzinBerubah;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -287,7 +288,7 @@ class IzinApprovalService
      *
      * @throws ValidationException
      */
-    public function pastikanTidakAdaAbsensiHadir(Pegawai $pegawai, \Carbon\CarbonInterface $mulai, \Carbon\CarbonInterface $selesai): void
+    public function pastikanTidakAdaAbsensiHadir(Pegawai $pegawai, CarbonInterface $mulai, CarbonInterface $selesai): void
     {
         $konflik = Absensi::where('pegawai_id', $pegawai->id)
             ->whereBetween('tanggal', [$mulai->toDateString(), $selesai->toDateString()])
@@ -331,7 +332,7 @@ class IzinApprovalService
      *
      * @throws ValidationException
      */
-    private function pastikanKuotaCukup(Pegawai $pegawai, \Carbon\CarbonInterface $mulai, \Carbon\CarbonInterface $selesai): void
+    private function pastikanKuotaCukup(Pegawai $pegawai, CarbonInterface $mulai, CarbonInterface $selesai): void
     {
         $tahunAjaran = TahunAjaran::where('sekolah_id', $pegawai->sekolah_id)
             ->where('is_aktif', true)

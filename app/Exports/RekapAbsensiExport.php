@@ -28,7 +28,6 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  */
 class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
 {
-
     /**
      * @param array{
      *     bulan: int,
