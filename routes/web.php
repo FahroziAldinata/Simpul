@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Absensi\AbsensiController;
+use App\Http\Controllers\Absensi\JamKerjaController;
+use App\Http\Controllers\Absensi\TampilanQrController;
+use App\Http\Controllers\Absensi\TitikAbsenController;
 use App\Http\Controllers\AlokasiJamMapelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BerkasSiswaController;
@@ -181,6 +185,43 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('siswa/aksi-massal/rombel', [SiswaAksiMassalController::class, 'ubahRombel'])->name('siswa.aksi-massal.rombel');
     Route::post('siswa/aksi-massal/status', [SiswaAksiMassalController::class, 'ubahStatus'])->name('siswa.aksi-massal.status');
     Route::match(['get', 'post'], 'siswa/aksi-massal/ekspor', [SiswaAksiMassalController::class, 'ekspor'])->name('siswa.aksi-massal.ekspor');
+
+    // =========================================================================
+    // Absensi Guru — Minggu 8 (T-08.02 s/d T-08.08)
+    // =========================================================================
+
+    // T-08.02 — CRUD Jam Kerja per Kelompok Pegawai
+    Route::prefix('absensi/jam-kerja')->name('absensi.jam-kerja.')->group(function () {
+        Route::get('/', [JamKerjaController::class, 'index'])->name('index');
+        Route::post('/', [JamKerjaController::class, 'upsert'])->name('upsert');
+        Route::delete('{jamKerja}', [JamKerjaController::class, 'destroy'])->name('destroy');
+    });
+
+    // T-08.03 — CRUD Titik Absen + Token QR
+    Route::prefix('absensi/titik')->name('absensi.titik.')->group(function () {
+        Route::get('/', [TitikAbsenController::class, 'index'])->name('index');
+        Route::post('/', [TitikAbsenController::class, 'store'])->name('store');
+        Route::put('{titikAbsen}', [TitikAbsenController::class, 'update'])->name('update');
+        Route::delete('{titikAbsen}', [TitikAbsenController::class, 'destroy'])->name('destroy');
+        Route::post('{titikAbsen}/rotasi-secret', [TitikAbsenController::class, 'rotasiSecret'])->name('rotasi-secret');
+        // Endpoint fetch token QR — dipakai client-side timer (Keputusan #1)
+        Route::get('{titikAbsen}/token', [TitikAbsenController::class, 'token'])->name('token');
+    });
+
+    // T-08.04 — Halaman Tampilan QR (layar kantor, hanya Operator/Super Admin — Keputusan #2)
+    Route::prefix('absensi/qr')->name('absensi.qr.')->group(function () {
+        Route::get('/', [TampilanQrController::class, 'index'])->name('index');
+        Route::get('{titikAbsen}', [TampilanQrController::class, 'tampil'])->name('tampil');
+    });
+
+    // T-08.05 — Scan QR (semua role kecuali Orang Tua)
+    Route::get('absensi/scan', [AbsensiController::class, 'scan'])->name('absensi.scan');
+    Route::post('absensi/scan', [AbsensiController::class, 'simpanQr'])->name('absensi.scan.simpan');
+
+    // T-08.08 — Absen Manual (Operator/Super Admin)
+    Route::get('absensi/manual', [AbsensiController::class, 'indexManual'])->name('absensi.manual.index');
+    Route::post('absensi/manual', [AbsensiController::class, 'simpanManual'])->name('absensi.manual.simpan');
+
 });
 
 require __DIR__.'/settings.php';
