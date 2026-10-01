@@ -668,7 +668,7 @@ class MutasiSiswaTest extends TestCase
         $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
 
         // Sekolah lain mendaftarkan siswa baru dengan NISN yang sama
-        $sekolahLain = Sekolah::factory()->create();
+        $sekolahLain = Sekolah::factory()->create(['nama' => 'SMA Rahasia Tenant B']);
         Siswa::factory()->create([
             'sekolah_id' => $sekolahLain->id,
             'nisn' => $this->siswa->nisn,
@@ -688,6 +688,11 @@ class MutasiSiswaTest extends TestCase
             'Mutasi ini tidak bisa dibatalkan karena NISN siswa sudah aktif digunakan di sekolah lain.',
             $responseBatal->json('errors.mutasi.0')
         );
+
+        // Memastikan tidak ada kebocoran privasi tenant lain (nama sekolah / sekolah_id) pada respons
+        $responseBatal->assertDontSee($sekolahLain->id);
+        $responseBatal->assertDontSee($sekolahLain->nama);
+        $responseBatal->assertJsonMissing(['sekolah_id' => $sekolahLain->id]);
 
         $this->assertSoftDeleted('siswa', ['id' => $this->siswa->id]);
     }

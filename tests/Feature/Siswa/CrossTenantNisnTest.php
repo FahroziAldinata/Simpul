@@ -4,6 +4,7 @@ namespace Tests\Feature\Siswa;
 
 use App\Enums\JenisMutasi;
 use App\Enums\StatusSiswa;
+use App\Models\MutasiSiswa;
 use App\Models\Sekolah;
 use App\Models\Semester;
 use App\Models\Siswa;
@@ -111,5 +112,82 @@ class CrossTenantNisnTest extends TestCase
         $this->expectExceptionMessage("Gagal memulihkan data siswa: NISN {$nisnY} sudah aktif digunakan oleh siswa lain.");
 
         $siswaB->restore();
+    }
+
+    public function test_cancel_mutation_rejection_does_not_leak_cross_tenant_school_data(): void
+    {
+        $this->seed(RoleAndPermissionSeeder::class);
+
+        // Sekolah B memiliki siswa yang sudah mutasi keluar (soft-deleted)
+        $sekolahB = Sekolah::factory()->create(['nama' => 'Sekolah B Rahasia']);
+        $taB = TahunAjaran::factory()->create(['sekolah_id' => $sekolahB->id]);
+        $semB = Semester::factory()->create([
+            'sekolah_id' => $sekolahB->id,
+            'tahun_ajaran_id' => $taB->id,
+            'is_aktif' => true,
+        ]);
+        setPermissionsTeamId($sekolahB->id);
+        $operatorB = User::factory()->create(['sekolah_id' => $sekolahB->id]);
+        $operatorB->assignRole('operator');
+
+        $nisnZ = '0011223344';
+
+        $siswaB = Siswa::factory()->create([
+            'sekolah_id' => $sekolahB->id,
+            'nisn' => $nisnZ,
+            'status' => StatusSiswa::Aktif,
+        ]);
+
+        // Jalankan mutasi keluar → siswaB soft-deleted, NISN bebas
+        $mutasiRecord = MutasiSiswa::factory()->create([
+            'sekolah_id' => $sekolahB->id,
+            'siswa_id' => $siswaB->id,
+            'semester_id' => $semB->id,
+            'tipe' => JenisMutasi::Keluar,
+            'status_sebelum' => StatusSiswa::Aktif->value,
+            'is_batal' => false,
+        ]);
+        $siswaB->delete(); // simulasikan kondisi pasca-mutasi keluar
+
+        // Sekolah A mendaftar siswa aktif dengan NISN yang sama
+        $sekolahA = Sekolah::factory()->create(['nama' => 'Sekolah A Rahasia']);
+        Siswa::factory()->create([
+            'sekolah_id' => $sekolahA->id,
+            'nisn' => $nisnZ,
+            'status' => StatusSiswa::Aktif,
+        ]);
+
+        // Operator B mencoba membatalkan mutasi keluar siswaB via HTTP (wantsJson)
+        $response = $this->actingAs($operatorB)
+            ->withSession(['sekolah_id' => $sekolahB->id])
+            ->post(
+                route('siswa.mutasi.batal', $mutasiRecord->id),
+                ['alasan_batal' => 'Dibatalkan karena salah input'],
+                ['Accept' => 'application/json']
+            );
+
+        // Harus ditolak (422 Unprocessable Entity)
+        $response->assertStatus(422);
+
+        $body = $response->getContent();
+
+        // Assertion privasi: response TIDAK boleh mengandung identitas Sekolah A
+        $this->assertStringNotContainsString(
+            (string) $sekolahA->id,
+            $body,
+            'Response tidak boleh menyertakan sekolah_id milik sekolah lain.'
+        );
+        $this->assertStringNotContainsString(
+            'Sekolah A Rahasia',
+            $body,
+            'Response tidak boleh menyertakan nama sekolah lain.'
+        );
+
+        // Pesan harus generik
+        $response->assertJsonValidationErrors(['mutasi']);
+        $this->assertStringContainsString(
+            'tidak bisa dibatalkan',
+            $body,
+        );
     }
 }
