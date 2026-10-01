@@ -27,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $jam_pulang
  * @property bool $is_libur
  * @property int $jumlah_jam_pelajaran
+ * @property int $toleransi_menit Toleransi keterlambatan dalam menit (ditambahkan Minggu 8 T-08.01)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -45,6 +46,7 @@ class JamKerja extends Model
         'jam_pulang',
         'is_libur',
         'jumlah_jam_pelajaran',
+        'toleransi_menit',
     ];
 
     /**
@@ -56,6 +58,7 @@ class JamKerja extends Model
             'hari' => 'integer',
             'is_libur' => 'boolean',
             'jumlah_jam_pelajaran' => 'integer',
+            'toleransi_menit' => 'integer',
         ];
     }
 
