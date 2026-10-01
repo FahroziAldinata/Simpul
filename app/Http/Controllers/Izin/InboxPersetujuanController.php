@@ -78,12 +78,16 @@ class InboxPersetujuanController extends Controller
 
         $setuju = $data['keputusan'] === 'disetujui';
 
-        $this->izinService->putuskan(
+        $hasil = $this->izinService->putuskan(
             $persetujuanIzin,
             auth()->user(),
             $setuju,
             $data['catatan'] ?? null,
         );
+
+        if ($hasil === 'dibatalkan_konflik') {
+            return back()->with('warning', 'Persetujuan tidak dapat diselesaikan — pegawai sudah tercatat hadir pada tanggal terkait, pengajuan otomatis dibatalkan.');
+        }
 
         $pesan = $setuju ? 'Pengajuan berhasil disetujui.' : 'Pengajuan berhasil ditolak.';
 

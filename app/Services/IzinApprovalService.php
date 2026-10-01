@@ -107,7 +107,7 @@ class IzinApprovalService
      *
      * @throws ValidationException
      */
-    public function putuskan(PersetujuanIzin $langkah, User $approver, bool $setuju, ?string $catatan): void
+    public function putuskan(PersetujuanIzin $langkah, User $approver, bool $setuju, ?string $catatan): string
     {
         if ($langkah->status !== StatusPersetujuanIzin::Menunggu) {
             throw ValidationException::withMessages([
@@ -144,7 +144,7 @@ class IzinApprovalService
             $pengajuan->update(['status' => StatusPengajuanIzin::Ditolak]);
             $this->notifikasiPengaju($pengajuan, 'ditolak');
 
-            return;
+            return 'ditolak';
         }
 
         // Setuju: cek apakah masih ada langkah berikutnya
@@ -156,10 +156,12 @@ class IzinApprovalService
         if ($langkahBerikutnya) {
             // Ada langkah berikutnya — notifikasi approver berikutnya
             $this->notifikasiApproverAktif($pengajuan);
-        } else {
-            // Semua langkah selesai → pengajuan disetujui penuh
-            $this->selesaikanPersetujuan($pengajuan);
+
+            return 'langkah_berikutnya';
         }
+
+        // Semua langkah selesai → pengajuan disetujui penuh
+        return $this->selesaikanPersetujuan($pengajuan);
     }
 
     /**
@@ -168,7 +170,7 @@ class IzinApprovalService
      * AC6 (validasi ulang): cek kembali apakah ada absensi hadir yang muncul
      * selama jeda waktu antara pengajuan dan persetujuan akhir.
      */
-    private function selesaikanPersetujuan(PengajuanIzin $pengajuan): void
+    private function selesaikanPersetujuan(PengajuanIzin $pengajuan): string
     {
         $mulai = $pengajuan->tanggal_mulai;
         $selesai = $pengajuan->tanggal_selesai;
@@ -182,7 +184,7 @@ class IzinApprovalService
             $pengajuan->update(['status' => StatusPengajuanIzin::Dibatalkan]);
             $this->notifikasiPengaju($pengajuan, 'dibatalkan_konflik');
 
-            return;
+            return 'dibatalkan_konflik';
         }
 
         $pengajuan->update(['status' => StatusPengajuanIzin::Disetujui]);
@@ -195,6 +197,8 @@ class IzinApprovalService
         }
 
         $this->notifikasiPengaju($pengajuan, 'disetujui');
+
+        return 'disetujui';
     }
 
     /**

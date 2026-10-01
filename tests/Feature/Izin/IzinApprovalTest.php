@@ -477,7 +477,16 @@ class IzinApprovalTest extends TestCase
 
         // Kepsek approve — tapi AC6 validasi ulang harus membatalkan pengajuan
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
-        $this->service->putuskan($langkah, $this->userKepsek, true, null);
+
+        $response = $this->actingAs($this->userKepsek)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->post(route('izin.inbox.putuskan', $langkah), [
+                'keputusan' => 'disetujui',
+            ]);
+
+        // Verifikasi response ke approver membawa pesan peringatan eksplisit, bukan sukses generik
+        $response->assertSessionHas('warning', 'Persetujuan tidak dapat diselesaikan — pegawai sudah tercatat hadir pada tanggal terkait, pengajuan otomatis dibatalkan.');
+        $response->assertSessionMissing('success');
 
         $pengajuan->refresh();
         $this->assertEquals(StatusPengajuanIzin::Dibatalkan, $pengajuan->status,
