@@ -72,8 +72,8 @@ class TampilanQrController extends Controller
                 'nama' => $titikAbsen->nama,
                 // secret TIDAK disertakan
             ],
-            'payload'       => $payload,
-            'sisaDetik'     => $sisaDetik,
+            'payload' => $payload,
+            'sisaDetik' => $sisaDetik,
             'windowSeconds' => $windowSeconds,
             // URL endpoint fetch token — dipakai client timer
             'tokenUrl' => route('absensi.titik.token', $titikAbsen->id),
