@@ -4,6 +4,11 @@ use App\Http\Controllers\Absensi\AbsensiController;
 use App\Http\Controllers\Absensi\JamKerjaController;
 use App\Http\Controllers\Absensi\TampilanQrController;
 use App\Http\Controllers\Absensi\TitikAbsenController;
+use App\Http\Controllers\Izin\EksporAbsensiController;
+use App\Http\Controllers\Izin\InboxPersetujuanController;
+use App\Http\Controllers\Izin\JenisIzinController;
+use App\Http\Controllers\Izin\PengajuanIzinController;
+use App\Http\Controllers\Izin\RekapAbsensiController;
 use App\Http\Controllers\AlokasiJamMapelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\BerkasSiswaController;
@@ -221,6 +226,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // T-08.08 — Absen Manual (Operator/Super Admin)
     Route::get('absensi/manual', [AbsensiController::class, 'indexManual'])->name('absensi.manual.index');
     Route::post('absensi/manual', [AbsensiController::class, 'simpanManual'])->name('absensi.manual.simpan');
+
+
+    // =========================================================================
+    // MINGGU 9 — IZIN, CUTI & REKAP
+    // =========================================================================
+
+    // T-09.01 — CRUD Jenis Izin (Operator/Super Admin)
+    Route::prefix('izin/jenis')->name('izin.jenis.')->group(function () {
+        Route::get('/', [JenisIzinController::class, 'index'])->name('index');
+        Route::post('/', [JenisIzinController::class, 'store'])->name('store');
+        Route::put('{jenisIzin}', [JenisIzinController::class, 'update'])->name('update');
+        Route::delete('{jenisIzin}', [JenisIzinController::class, 'destroy'])->name('destroy');
+    });
+
+    // T-09.02 — Form Pengajuan Izin (semua role kecuali Orang Tua)
+    Route::prefix('izin/pengajuan')->name('izin.pengajuan.')->group(function () {
+        Route::get('/', [PengajuanIzinController::class, 'index'])->name('index');
+        Route::post('/', [PengajuanIzinController::class, 'store'])->name('store');
+        Route::post('{pengajuanIzin}/batalkan', [PengajuanIzinController::class, 'batalkan'])->name('batalkan');
+    });
+
+    // T-09.04 — Inbox Persetujuan (Super Admin, Kepsek)
+    Route::prefix('izin/inbox')->name('izin.inbox.')->group(function () {
+        Route::get('/', [InboxPersetujuanController::class, 'index'])->name('index');
+        Route::post('{persetujuanIzin}/putuskan', [InboxPersetujuanController::class, 'putuskan'])->name('putuskan');
+    });
+
+    // T-09.07 — Rekap Matriks Bulanan
+    Route::get('izin/rekap', [RekapAbsensiController::class, 'index'])->name('izin.rekap.index');
+
+    // T-09.08 — Ekspor Excel & PDF
+    Route::prefix('izin/ekspor')->name('izin.ekspor.')->group(function () {
+        Route::get('excel', [EksporAbsensiController::class, 'excel'])->name('excel');
+        Route::get('pdf', [EksporAbsensiController::class, 'pdf'])->name('pdf');
+    });
 
 });
 

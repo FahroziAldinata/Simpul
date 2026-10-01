@@ -93,4 +93,34 @@ class TampilanQrTest extends TestCase
         // Tenant isolation: 404
         $response->assertStatus(404);
     }
+
+    public function test_operator_dapat_merotasi_secret_titik_absen_dan_qr_lama_langsung_tidak_valid(): void
+    {
+        $qrService = new \App\Services\QrTokenService();
+        $secretLama = $this->titik->secret;
+
+        // Generate payload sebelum rotasi
+        $payloadLama = $qrService->buatPayloadQr($this->titik);
+
+        // Sebelum rotasi: payload valid
+        $validasiSebelum = $qrService->validasiPayload($payloadLama);
+        $this->assertTrue($validasiSebelum['valid']);
+
+        // Operator melakukan rotasi secret via endpoint resmi
+        $response = $this->actingAs($this->operator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->post(route('absensi.titik.rotasi-secret', $this->titik->id));
+
+        $response->assertRedirect(route('absensi.titik.index'));
+        $response->assertSessionHas('success');
+
+        // Pastikan secret di database telah berubah
+        $this->titik->refresh();
+        $this->assertNotEquals($secretLama, $this->titik->secret);
+
+        // QR lama langsung tidak valid setelah rotasi secret
+        $validasiSetelah = $qrService->validasiPayload($payloadLama);
+        $this->assertFalse($validasiSetelah['valid']);
+        $this->assertStringContainsString('Token QR tidak valid', $validasiSetelah['alasan']);
+    }
 }

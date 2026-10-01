@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Scopes\SekolahScope;
 use App\Models\TitikAbsen;
 use Illuminate\Support\Str;
 
@@ -90,8 +91,12 @@ class QrTokenService
             return $invalid('QR sudah kedaluwarsa. Minta QR terbaru.');
         }
 
-        // Ambil titik absen dan secret-nya
-        $titikAbsen = TitikAbsen::where('id', $titikAbsenId)
+        // Ambil titik absen dan secret-nya.
+        // withoutGlobalScope(SekolahScope::class) diperlukan agar QR dari sekolah lain bisa divalidasi
+        // secara kriptografis — isolasi tenant (404) ditegakkan oleh AbsensiService::prosesAbsenQr,
+        // bukan di sini. QrTokenService hanya memvalidasi integritas token.
+        $titikAbsen = TitikAbsen::withoutGlobalScope(SekolahScope::class)
+            ->where('id', $titikAbsenId)
             ->where('sekolah_id', $sekolahId)
             ->where('is_aktif', true)
             ->first();

@@ -6,6 +6,7 @@ use App\Enums\JenisAbsensi;
 use App\Models\Absensi;
 use App\Models\Pegawai;
 use App\Models\Sekolah;
+use App\Services\IzinApprovalService;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -27,6 +28,7 @@ class AbsensiService
     public function __construct(
         private readonly QrTokenService $qrTokenService,
         private readonly StatusKehadiranCalculator $statusCalculator,
+        private readonly IzinApprovalService $izinApprovalService,
     ) {}
 
     /**
@@ -53,16 +55,16 @@ class AbsensiService
             ]);
         }
 
-        // Pastikan QR milik sekolah yang sama dengan pegawai
-        if ($hasil['sekolah_id'] !== $pegawai->sekolah_id) {
-            throw ValidationException::withMessages([
-                'payload_qr' => 'QR tidak valid untuk sekolah ini.',
-            ]);
-        }
+        // Pastikan QR milik sekolah yang sama dengan pegawai (isolasi tenant = 404)
+        abort_if($hasil['sekolah_id'] !== $pegawai->sekolah_id, 404);
 
         $jenis = JenisAbsensi::from($data['jenis']);
         $tanggal = now()->toDateString();
         $sekolah = $pegawai->sekolah;
+
+        // Guard T-09.05: Tolak scan jika pegawai sudah punya izin disetujui hari ini
+        // Izin formal tidak boleh diam-diam ditimpa oleh scan QR.
+        $this->izinApprovalService->pastikanTidakAdaIzinDisetujui($pegawai, $tanggal);
 
         // 2. Cek duplikat — unique constraint ada di DB, tapi beri pesan manusiawi
         $sudahAbsen = Absensi::where('pegawai_id', $pegawai->id)

@@ -234,24 +234,27 @@ class AbsensiQrTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_scan_qr_milik_sekolah_lain_ditolak(): void
+    public function test_pegawai_sekolah_a_scan_qr_titik_absen_sekolah_b_ditolak_404_isolasi_tenant(): void
     {
-        $sekolahLain = Sekolah::factory()->create();
-        $titikLain = TitikAbsen::factory()->create([
-            'sekolah_id' => $sekolahLain->id,
-            'is_aktif' => true,
+        $sekolahB = Sekolah::factory()->create();
+        $titikB = TitikAbsen::factory()->create([
+            'sekolah_id' => $sekolahB->id,
+            'is_aktif'   => true,
         ]);
 
-        $payloadSekolahLain = $this->qrTokenService->buatPayloadQr($titikLain);
+        $payloadSekolahB = $this->qrTokenService->buatPayloadQr($titikB);
 
         $response = $this->actingAs($this->userGuru)
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->postJson(route('absensi.scan.simpan'), [
-                'payload_qr' => $payloadSekolahLain,
-                'jenis' => 'masuk',
+                'payload_qr' => $payloadSekolahB,
+                'jenis'      => 'masuk',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['payload_qr']);
+        // Isolasi tenant: 404
+        $response->assertStatus(404);
+        $this->assertDatabaseMissing('absensi', [
+            'pegawai_id' => $this->pegawai->id,
+        ]);
     }
 }

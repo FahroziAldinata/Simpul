@@ -69,6 +69,7 @@ class Absensi extends Model
         'client_uuid',
         'dicatat_oleh',
         'alasan_manual',
+        'pengajuan_izin_id',
     ];
 
     /**
