@@ -3,7 +3,6 @@
 namespace App\Notifications;
 
 use App\Models\PengajuanIzin;
-use App\Models\PersetujuanIzin;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -35,15 +34,15 @@ class PengajuanIzinMenungguPersetujuan extends Notification implements ShouldQue
         $pegawai = $this->pengajuan->pegawai;
 
         return [
-            'type'              => 'pengajuan_izin_menunggu',
+            'type' => 'pengajuan_izin_menunggu',
             'pengajuan_izin_id' => $this->pengajuan->id,
-            'langkah_urutan'    => $this->langkahUrutan,
-            'pegawai_nama'      => $pegawai?->nama,
-            'jenis_izin'        => $this->pengajuan->jenisIzin?->nama,
-            'tanggal_mulai'     => $this->pengajuan->tanggal_mulai->toDateString(),
-            'tanggal_selesai'   => $this->pengajuan->tanggal_selesai->toDateString(),
-            'pesan'             => ($pegawai?->nama ?? 'Seseorang').' mengajukan '
-                .($this->pengajuan->jenisIzin?->nama ?? 'izin')
+            'langkah_urutan' => $this->langkahUrutan,
+            'pegawai_nama' => $pegawai->nama,
+            'jenis_izin' => $this->pengajuan->jenisIzin?->nama,
+            'tanggal_mulai' => $this->pengajuan->tanggal_mulai->toDateString(),
+            'tanggal_selesai' => $this->pengajuan->tanggal_selesai->toDateString(),
+            'pesan' => $pegawai->nama.' mengajukan '
+                .($this->pengajuan->jenisIzin !== null ? $this->pengajuan->jenisIzin->nama : 'izin')
                 .' dan menunggu persetujuan Anda.',
         ];
     }

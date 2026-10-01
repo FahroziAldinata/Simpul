@@ -19,36 +19,36 @@ class JenisIzinSeeder extends Seeder
     {
         $defaults = [
             [
-                'nama'                  => 'Izin',
-                'kode'                  => 'izin',
-                'butuh_lampiran'        => false,
-                'butuh_persetujuan'     => true,
+                'nama' => 'Izin',
+                'kode' => 'izin',
+                'butuh_lampiran' => false,
+                'butuh_persetujuan' => true,
                 'mengurangi_kuota_cuti' => false,
-                'urutan_approval'       => ['kepsek'],
+                'urutan_approval' => ['kepsek'],
             ],
             [
-                'nama'                  => 'Sakit',
-                'kode'                  => 'sakit',
-                'butuh_lampiran'        => true,  // surat dokter
-                'butuh_persetujuan'     => false, // langsung disetujui, lampiran cukup
+                'nama' => 'Sakit',
+                'kode' => 'sakit',
+                'butuh_lampiran' => true,  // surat dokter
+                'butuh_persetujuan' => false, // langsung disetujui, lampiran cukup
                 'mengurangi_kuota_cuti' => false,
-                'urutan_approval'       => [],
+                'urutan_approval' => [],
             ],
             [
-                'nama'                  => 'Cuti Tahunan',
-                'kode'                  => 'cuti',
-                'butuh_lampiran'        => false,
-                'butuh_persetujuan'     => true,
+                'nama' => 'Cuti Tahunan',
+                'kode' => 'cuti',
+                'butuh_lampiran' => false,
+                'butuh_persetujuan' => true,
                 'mengurangi_kuota_cuti' => true,
-                'urutan_approval'       => ['kepsek'],
+                'urutan_approval' => ['kepsek'],
             ],
             [
-                'nama'                  => 'Dinas Luar',
-                'kode'                  => 'dinas',
-                'butuh_lampiran'        => true,  // surat tugas
-                'butuh_persetujuan'     => true,
+                'nama' => 'Dinas Luar',
+                'kode' => 'dinas',
+                'butuh_lampiran' => true,  // surat tugas
+                'butuh_persetujuan' => true,
                 'mengurangi_kuota_cuti' => false,
-                'urutan_approval'       => ['kepsek'],
+                'urutan_approval' => ['kepsek'],
             ],
         ];
 
@@ -56,7 +56,7 @@ class JenisIzinSeeder extends Seeder
             JenisIzin::firstOrCreate(
                 ['sekolah_id' => null, 'kode' => $data['kode']],
                 array_merge($data, [
-                    'id'       => Str::uuid()->toString(),
+                    'id' => Str::uuid()->toString(),
                     'is_aktif' => true,
                 ])
             );

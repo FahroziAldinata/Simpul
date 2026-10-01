@@ -27,6 +27,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                route: 'readonly', // Ziggy — injected globally by app.js
             },
         },
     },

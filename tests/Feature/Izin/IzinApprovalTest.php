@@ -4,7 +4,6 @@ namespace Tests\Feature\Izin;
 
 use App\Enums\StatusAbsensi;
 use App\Enums\StatusPengajuanIzin;
-use App\Enums\StatusPersetujuanIzin;
 use App\Models\Absensi;
 use App\Models\JenisIzin;
 use App\Models\KuotaCuti;
@@ -17,7 +16,8 @@ use App\Models\User;
 use App\Services\IzinApprovalService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 /**
@@ -40,13 +40,21 @@ class IzinApprovalTest extends TestCase
     use RefreshDatabase;
 
     private Sekolah $sekolah;
+
     private TahunAjaran $tahunAjaran;
+
     private User $userGuru;
+
     private User $userKepsek;
+
     private User $userOperator;
+
     private Pegawai $pegawaiGuru;
+
     private JenisIzin $jenisIzin;
+
     private JenisIzin $jenisCuti;
+
     private IzinApprovalService $service;
 
     protected function setUp(): void
@@ -58,8 +66,8 @@ class IzinApprovalTest extends TestCase
         setPermissionsTeamId($this->sekolah->id);
 
         $this->tahunAjaran = TahunAjaran::factory()->create([
-            'sekolah_id'    => $this->sekolah->id,
-            'is_aktif'      => true,
+            'sekolah_id' => $this->sekolah->id,
+            'is_aktif' => true,
             'tanggal_mulai' => '2026-07-01',
             'tanggal_selesai' => '2027-06-30',
         ]);
@@ -77,28 +85,28 @@ class IzinApprovalTest extends TestCase
         // Pegawai
         $this->pegawaiGuru = Pegawai::factory()->create([
             'sekolah_id' => $this->sekolah->id,
-            'user_id'    => $this->userGuru->id,
-            'nama'       => 'Budi Santoso',
+            'user_id' => $this->userGuru->id,
+            'nama' => 'Budi Santoso',
         ]);
 
         // Jenis izin (butuh persetujuan 1 langkah: kepsek)
         $this->jenisIzin = JenisIzin::factory()->create([
-            'nama'                  => 'Izin',
-            'kode'                  => 'izin',
-            'butuh_lampiran'        => false,
-            'butuh_persetujuan'     => true,
+            'nama' => 'Izin',
+            'kode' => 'izin',
+            'butuh_lampiran' => false,
+            'butuh_persetujuan' => true,
             'mengurangi_kuota_cuti' => false,
-            'urutan_approval'       => ['kepsek'],
+            'urutan_approval' => ['kepsek'],
         ]);
 
         // Jenis cuti (mengurangi kuota, 1 langkah: kepsek)
         $this->jenisCuti = JenisIzin::factory()->create([
-            'nama'                  => 'Cuti Tahunan',
-            'kode'                  => 'cuti',
-            'butuh_lampiran'        => false,
-            'butuh_persetujuan'     => true,
+            'nama' => 'Cuti Tahunan',
+            'kode' => 'cuti',
+            'butuh_lampiran' => false,
+            'butuh_persetujuan' => true,
             'mengurangi_kuota_cuti' => true,
-            'urutan_approval'       => ['kepsek'],
+            'urutan_approval' => ['kepsek'],
         ]);
 
         $this->service = app(IzinApprovalService::class);
@@ -111,35 +119,35 @@ class IzinApprovalTest extends TestCase
     public function test_guru_bisa_mengajukan_izin(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-10',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-10',
             'tanggal_selesai' => '2026-10-10',
-            'alasan'          => 'Keperluan keluarga',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan keluarga',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $this->assertEquals(StatusPengajuanIzin::Menunggu, $pengajuan->status);
         $this->assertDatabaseHas('pengajuan_izin', ['id' => $pengajuan->id, 'status' => 'menunggu']);
         $this->assertDatabaseHas('persetujuan_izin', [
             'pengajuan_izin_id' => $pengajuan->id,
-            'urutan'            => 1,
-            'approver_role'     => 'kepsek',
-            'status'            => 'menunggu',
+            'urutan' => 1,
+            'approver_role' => 'kepsek',
+            'status' => 'menunggu',
         ]);
     }
 
     public function test_tanggal_selesai_sebelum_mulai_ditolak(): void
     {
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-10',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-10',
             'tanggal_selesai' => '2026-10-09', // Sebelum mulai!
-            'alasan'          => 'Test',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Test',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
     }
 
@@ -153,21 +161,21 @@ class IzinApprovalTest extends TestCase
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => '2026-10-10',
-            'jenis'      => 'masuk',
-            'status'     => 'hadir',
-            'sumber'     => 'qr',
+            'tanggal' => '2026-10-10',
+            'jenis' => 'masuk',
+            'status' => 'hadir',
+            'sumber' => 'qr',
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-10',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-10',
             'tanggal_selesai' => '2026-10-10',
-            'alasan'          => 'Keperluan keluarga',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan keluarga',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
     }
 
@@ -177,21 +185,21 @@ class IzinApprovalTest extends TestCase
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => '2026-10-10',
-            'jenis'      => 'masuk',
-            'status'     => 'terlambat',
-            'sumber'     => 'qr',
+            'tanggal' => '2026-10-10',
+            'jenis' => 'masuk',
+            'status' => 'terlambat',
+            'sumber' => 'qr',
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-10',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-10',
             'tanggal_selesai' => '2026-10-10',
-            'alasan'          => 'Terlambat tapi mau izin?',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Terlambat tapi mau izin?',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
     }
 
@@ -202,12 +210,12 @@ class IzinApprovalTest extends TestCase
     public function test_kepsek_bisa_menyetujui_langkah_1(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'alasan'          => 'Keperluan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
@@ -221,17 +229,17 @@ class IzinApprovalTest extends TestCase
     public function test_guru_tidak_bisa_menyetujui_langkah_yang_memerlukan_kepsek(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'alasan'          => 'Keperluan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
 
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
 
         $this->service->putuskan($langkah, $this->userGuru, true, null);
     }
@@ -241,23 +249,23 @@ class IzinApprovalTest extends TestCase
         // Buat jenis izin dua langkah: kepsek → super_admin
         $jenisDuaLangkah = JenisIzin::factory()->create([
             'butuh_persetujuan' => true,
-            'urutan_approval'   => ['kepsek', 'super_admin'],
+            'urutan_approval' => ['kepsek', 'super_admin'],
         ]);
 
         $userSuperAdmin = User::factory()->create(['sekolah_id' => null]);
         $userSuperAdmin->assignRole('super_admin');
 
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $jenisDuaLangkah->id,
-            'tanggal_mulai'   => '2026-10-20',
+            'jenis_izin_id' => $jenisDuaLangkah->id,
+            'tanggal_mulai' => '2026-10-20',
             'tanggal_selesai' => '2026-10-20',
-            'alasan'          => 'Dua langkah',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Dua langkah',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         // Langkah 1 masih menunggu — Super Admin belum boleh melihat di inbox-nya
-        $inboxSuperAdmin = \App\Models\PersetujuanIzin::query()
+        $inboxSuperAdmin = PersetujuanIzin::query()
             ->whereIn('approver_role', ['super_admin'])
             ->where('status', 'menunggu')
             ->whereNotExists(function ($sub) {
@@ -275,19 +283,19 @@ class IzinApprovalTest extends TestCase
     {
         $jenisDuaLangkah = JenisIzin::factory()->create([
             'butuh_persetujuan' => true,
-            'urutan_approval'   => ['kepsek', 'super_admin'],
+            'urutan_approval' => ['kepsek', 'super_admin'],
         ]);
 
         $userSuperAdmin = User::factory()->create(['sekolah_id' => null]);
         $userSuperAdmin->assignRole('super_admin');
 
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $jenisDuaLangkah->id,
-            'tanggal_mulai'   => '2026-10-20',
+            'jenis_izin_id' => $jenisDuaLangkah->id,
+            'tanggal_mulai' => '2026-10-20',
             'tanggal_selesai' => '2026-10-20',
-            'alasan'          => 'Dua langkah',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Dua langkah',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         // Kepsek approve langkah 1
@@ -295,7 +303,7 @@ class IzinApprovalTest extends TestCase
         $this->service->putuskan($langkah1, $this->userKepsek, true, null);
 
         // Sekarang Super Admin harus bisa melihat langkah 2
-        $inboxSuperAdmin = \App\Models\PersetujuanIzin::query()
+        $inboxSuperAdmin = PersetujuanIzin::query()
             ->whereIn('approver_role', ['super_admin'])
             ->where('status', 'menunggu')
             ->whereNotExists(function ($sub) {
@@ -312,17 +320,17 @@ class IzinApprovalTest extends TestCase
     public function test_tolak_memerlukan_catatan(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'alasan'          => 'Keperluan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->putuskan($langkah, $this->userKepsek, false, null); // Tolak tanpa catatan!
     }
@@ -330,24 +338,24 @@ class IzinApprovalTest extends TestCase
     public function test_kepsek_sekolah_lain_tidak_bisa_approve(): void
     {
         $sekolahLain = Sekolah::factory()->create();
-        $kepsekLain  = User::factory()->create(['sekolah_id' => $sekolahLain->id]);
+        $kepsekLain = User::factory()->create(['sekolah_id' => $sekolahLain->id]);
         setPermissionsTeamId($sekolahLain->id);
         $kepsekLain->assignRole('kepsek');
         setPermissionsTeamId($this->sekolah->id);
 
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'alasan'          => 'Keperluan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
 
         // Kepsek sekolah lain tidak punya role 'kepsek' di sekolah ini — harus 403
-        $this->expectException(\Symfony\Component\HttpKernel\Exception\HttpException::class);
+        $this->expectException(HttpException::class);
 
         $this->service->putuskan($langkah, $kepsekLain, true, null);
     }
@@ -359,12 +367,12 @@ class IzinApprovalTest extends TestCase
     public function test_pengajuan_disetujui_penuh_otomatis_isi_absensi(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-16', // 2 hari
-            'alasan'          => 'Keperluan keluarga',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan keluarga',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
@@ -387,19 +395,19 @@ class IzinApprovalTest extends TestCase
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => '2026-10-15',
-            'jenis'      => 'masuk',
-            'status'     => 'izin',
-            'sumber'     => 'izin',
+            'tanggal' => '2026-10-15',
+            'jenis' => 'masuk',
+            'status' => 'izin',
+            'sumber' => 'izin',
         ]);
 
         $pengajuan = PengajuanIzin::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $this->pegawaiGuru->id,
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $this->pegawaiGuru->id,
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'status'          => 'disetujui',
+            'status' => 'disetujui',
         ]);
 
         // AutoIsi tidak boleh menambah baris duplikat
@@ -423,13 +431,13 @@ class IzinApprovalTest extends TestCase
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => today()->toDateString(),
-            'jenis'      => 'masuk',
-            'status'     => 'izin',
-            'sumber'     => 'izin',
+            'tanggal' => today()->toDateString(),
+            'jenis' => 'masuk',
+            'status' => 'izin',
+            'sumber' => 'izin',
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->pastikanTidakAdaIzinDisetujui($this->pegawaiGuru, today()->toDateString());
     }
@@ -449,22 +457,22 @@ class IzinApprovalTest extends TestCase
     public function test_pengajuan_dibatalkan_sistem_jika_pegawai_hadir_selama_jeda_waktu(): void
     {
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisIzin->id,
-            'tanggal_mulai'   => '2026-10-15',
+            'jenis_izin_id' => $this->jenisIzin->id,
+            'tanggal_mulai' => '2026-10-15',
             'tanggal_selesai' => '2026-10-15',
-            'alasan'          => 'Keperluan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Keperluan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         // Simulasi: selama menunggu persetujuan, pegawai ternyata hadir via QR
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => '2026-10-15',
-            'jenis'      => 'masuk',
-            'status'     => 'hadir',
-            'sumber'     => 'qr',
+            'tanggal' => '2026-10-15',
+            'jenis' => 'masuk',
+            'status' => 'hadir',
+            'sumber' => 'qr',
         ]);
 
         // Kepsek approve — tapi AC6 validasi ulang harus membatalkan pengajuan
@@ -485,20 +493,20 @@ class IzinApprovalTest extends TestCase
     {
         // Buat kuota cuti awal
         KuotaCuti::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $this->pegawaiGuru->id,
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $this->pegawaiGuru->id,
             'tahun_ajaran_id' => $this->tahunAjaran->id,
-            'kuota_hari'      => 12,
-            'terpakai'        => 0,
+            'kuota_hari' => 12,
+            'terpakai' => 0,
         ]);
 
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisCuti->id,
-            'tanggal_mulai'   => '2026-10-20',
+            'jenis_izin_id' => $this->jenisCuti->id,
+            'tanggal_mulai' => '2026-10-20',
             'tanggal_selesai' => '2026-10-22', // 3 hari
-            'alasan'          => 'Cuti tahunan',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Cuti tahunan',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         $langkah = PersetujuanIzin::where('pengajuan_izin_id', $pengajuan->id)->first();
@@ -513,22 +521,22 @@ class IzinApprovalTest extends TestCase
     {
         // Kuota sudah habis
         KuotaCuti::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $this->pegawaiGuru->id,
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $this->pegawaiGuru->id,
             'tahun_ajaran_id' => $this->tahunAjaran->id,
-            'kuota_hari'      => 12,
-            'terpakai'        => 12, // Sudah penuh
+            'kuota_hari' => 12,
+            'terpakai' => 12, // Sudah penuh
         ]);
 
-        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        $this->expectException(ValidationException::class);
 
         $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $this->jenisCuti->id,
-            'tanggal_mulai'   => '2026-10-20',
+            'jenis_izin_id' => $this->jenisCuti->id,
+            'tanggal_mulai' => '2026-10-20',
             'tanggal_selesai' => '2026-10-20',
-            'alasan'          => 'Minta cuti lagi',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Minta cuti lagi',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
     }
 
@@ -544,12 +552,12 @@ class IzinApprovalTest extends TestCase
         ]);
 
         $pengajuan = $this->service->ajukan($this->pegawaiGuru, [
-            'jenis_izin_id'   => $jenisTanpaApproval->id,
-            'tanggal_mulai'   => '2026-10-10',
+            'jenis_izin_id' => $jenisTanpaApproval->id,
+            'tanggal_mulai' => '2026-10-10',
             'tanggal_selesai' => '2026-10-10',
-            'alasan'          => 'Demam',
-            'lampiran_path'   => null,
-            'lampiran_mime'   => null,
+            'alasan' => 'Demam',
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
         ]);
 
         // Langsung disetujui tanpa langkah persetujuan
@@ -559,9 +567,9 @@ class IzinApprovalTest extends TestCase
         // Absensi harus langsung terisi
         $this->assertDatabaseHas('absensi', [
             'pegawai_id' => $this->pegawaiGuru->id,
-            'tanggal'    => '2026-10-10',
-            'status'     => 'sakit',
-            'sumber'     => 'izin',
+            'tanggal' => '2026-10-10',
+            'status' => 'sakit',
+            'sumber' => 'izin',
         ]);
     }
 
@@ -571,11 +579,11 @@ class IzinApprovalTest extends TestCase
 
     public function test_pengajuan_izin_dari_sekolah_lain_tidak_terlihat(): void
     {
-        $sekolahLain    = Sekolah::factory()->create();
-        $pegawaiLain    = Pegawai::factory()->create(['sekolah_id' => $sekolahLain->id]);
-        $pengajuanLain  = PengajuanIzin::factory()->create([
-            'sekolah_id'    => $sekolahLain->id,
-            'pegawai_id'    => $pegawaiLain->id,
+        $sekolahLain = Sekolah::factory()->create();
+        $pegawaiLain = Pegawai::factory()->create(['sekolah_id' => $sekolahLain->id]);
+        $pengajuanLain = PengajuanIzin::factory()->create([
+            'sekolah_id' => $sekolahLain->id,
+            'pegawai_id' => $pegawaiLain->id,
             'jenis_izin_id' => $this->jenisIzin->id,
         ]);
 
@@ -623,17 +631,17 @@ class IzinApprovalTest extends TestCase
         // Operator boleh akses ekspor (PRD: Super Admin, Operator, Kepsek)
         $this->actingAs($this->userOperator)
             ->withSession(['sekolah_id' => $this->sekolah->id])
-            ->get(route('izin.ekspor.excel') . '?bulan=10&tahun=2026')
+            ->get(route('izin.ekspor.excel').'?bulan=10&tahun=2026')
             ->assertOk(); // Operator BISA export
     }
 
     public function test_response_penolakan_tidak_mengandung_data_sekolah_lain(): void
     {
         // Verifikasi bahwa response 403/404 tidak membocorkan data sekolah lain
-        $sekolahLain   = Sekolah::factory()->create(['nama' => 'SMK Rahasia']);
+        $sekolahLain = Sekolah::factory()->create(['nama' => 'SMK Rahasia']);
         $pengajuanLain = PengajuanIzin::factory()->create([
-            'sekolah_id'    => $sekolahLain->id,
-            'pegawai_id'    => Pegawai::factory()->create(['sekolah_id' => $sekolahLain->id])->id,
+            'sekolah_id' => $sekolahLain->id,
+            'pegawai_id' => Pegawai::factory()->create(['sekolah_id' => $sekolahLain->id])->id,
             'jenis_izin_id' => $this->jenisIzin->id,
         ]);
 

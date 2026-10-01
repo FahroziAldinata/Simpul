@@ -41,13 +41,13 @@ class JenisIzinController extends Controller
         abort_unless(auth()->user()?->hasRole(['operator', 'super_admin']), 403);
 
         $data = $request->validate([
-            'nama'                  => ['required', 'string', 'max:100'],
-            'kode'                  => ['nullable', 'string', 'max:50', 'alpha_dash'],
-            'butuh_lampiran'        => ['boolean'],
-            'butuh_persetujuan'     => ['boolean'],
+            'nama' => ['required', 'string', 'max:100'],
+            'kode' => ['nullable', 'string', 'max:50', 'alpha_dash'],
+            'butuh_lampiran' => ['boolean'],
+            'butuh_persetujuan' => ['boolean'],
             'mengurangi_kuota_cuti' => ['boolean'],
-            'urutan_approval'       => ['array'],
-            'urutan_approval.*'     => ['string'],
+            'urutan_approval' => ['array'],
+            'urutan_approval.*' => ['string'],
         ]);
 
         $sekolahId = session('sekolah_id');
@@ -78,14 +78,14 @@ class JenisIzinController extends Controller
         abort_unless($jenisIzin->sekolah_id === session('sekolah_id'), 404);
 
         $data = $request->validate([
-            'nama'                  => ['required', 'string', 'max:100'],
-            'kode'                  => ['nullable', 'string', 'max:50', 'alpha_dash'],
-            'butuh_lampiran'        => ['boolean'],
-            'butuh_persetujuan'     => ['boolean'],
+            'nama' => ['required', 'string', 'max:100'],
+            'kode' => ['nullable', 'string', 'max:50', 'alpha_dash'],
+            'butuh_lampiran' => ['boolean'],
+            'butuh_persetujuan' => ['boolean'],
             'mengurangi_kuota_cuti' => ['boolean'],
-            'urutan_approval'       => ['array'],
-            'urutan_approval.*'     => ['string'],
-            'is_aktif'              => ['boolean'],
+            'urutan_approval' => ['array'],
+            'urutan_approval.*' => ['string'],
+            'is_aktif' => ['boolean'],
         ]);
 
         $jenisIzin->update($data);

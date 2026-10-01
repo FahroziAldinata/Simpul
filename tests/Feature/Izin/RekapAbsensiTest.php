@@ -3,13 +3,14 @@
 namespace Tests\Feature\Izin;
 
 use App\Models\Absensi;
-use App\Models\JenisIzin;
 use App\Models\Pegawai;
 use App\Models\Sekolah;
 use App\Models\User;
 use App\Services\RekapAbsensiService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ class RekapAbsensiTest extends TestCase
     use RefreshDatabase;
 
     private Sekolah $sekolah;
+
     private User $userOperator;
 
     protected function setUp(): void
@@ -41,42 +43,42 @@ class RekapAbsensiTest extends TestCase
     {
         $pegawai = Pegawai::factory()->create([
             'sekolah_id' => $this->sekolah->id,
-            'nama'       => 'Andi Wijaya',
+            'nama' => 'Andi Wijaya',
         ]);
 
         // Buat beberapa baris absensi di Oktober 2026
         Absensi::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $pegawai->id,
-            'tanggal'         => '2026-10-05',
-            'jenis'           => 'masuk',
-            'status'          => 'hadir',
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal' => '2026-10-05',
+            'jenis' => 'masuk',
+            'status' => 'hadir',
             'menit_terlambat' => 0,
-            'sumber'          => 'qr',
+            'sumber' => 'qr',
         ]);
 
         Absensi::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $pegawai->id,
-            'tanggal'         => '2026-10-06',
-            'jenis'           => 'masuk',
-            'status'          => 'terlambat',
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal' => '2026-10-06',
+            'jenis' => 'masuk',
+            'status' => 'terlambat',
             'menit_terlambat' => 25,
-            'sumber'          => 'qr',
+            'sumber' => 'qr',
         ]);
 
         Absensi::factory()->create([
-            'sekolah_id'      => $this->sekolah->id,
-            'pegawai_id'      => $pegawai->id,
-            'tanggal'         => '2026-10-07',
-            'jenis'           => 'masuk',
-            'status'          => 'izin',
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $pegawai->id,
+            'tanggal' => '2026-10-07',
+            'jenis' => 'masuk',
+            'status' => 'izin',
             'menit_terlambat' => 0,
-            'sumber'          => 'izin',
+            'sumber' => 'izin',
         ]);
 
         $service = app(RekapAbsensiService::class);
-        $rekap   = $service->generate($this->sekolah->id, 10, 2026);
+        $rekap = $service->generate($this->sekolah->id, 10, 2026);
 
         $this->assertCount(1, $rekap['baris']);
         $baris = $rekap['baris'][0];
@@ -97,14 +99,14 @@ class RekapAbsensiTest extends TestCase
         Absensi::factory()->create([
             'sekolah_id' => $this->sekolah->id,
             'pegawai_id' => $pegawai->id,
-            'tanggal'    => '2026-10-05',
-            'jenis'      => 'masuk',
-            'status'     => 'hadir',
-            'sumber'     => 'qr',
+            'tanggal' => '2026-10-05',
+            'jenis' => 'masuk',
+            'status' => 'hadir',
+            'sumber' => 'qr',
         ]);
 
         $service = app(RekapAbsensiService::class);
-        $rekap   = $service->generate($this->sekolah->id, 10, 2026);
+        $rekap = $service->generate($this->sekolah->id, 10, 2026);
 
         $sel = $rekap['baris'][0]['sel']['2026-10-05'];
 
@@ -125,8 +127,8 @@ class RekapAbsensiTest extends TestCase
     public function test_rekap_45_pegawai_30_hari_di_bawah_60_detik(): void
     {
         $jumlahPegawai = 45;
-        $bulan         = 10;
-        $tahun         = 2026;
+        $bulan = 10;
+        $tahun = 2026;
 
         // Buat 45 pegawai
         $pegawaiList = Pegawai::factory()->count($jumlahPegawai)->create([
@@ -138,26 +140,26 @@ class RekapAbsensiTest extends TestCase
         foreach ($pegawaiList as $pegawai) {
             for ($hari = 1; $hari <= 30; $hari++) {
                 $statuses = ['hadir', 'terlambat', 'izin', 'sakit', 'hadir', 'hadir'];
-                $status   = $statuses[$hari % count($statuses)];
+                $status = $statuses[$hari % count($statuses)];
 
                 $absensiData[] = [
-                    'id'              => \Illuminate\Support\Str::uuid()->toString(),
-                    'sekolah_id'      => $this->sekolah->id,
-                    'pegawai_id'      => $pegawai->id,
-                    'tanggal'         => "{$tahun}-{$bulan}-".str_pad($hari, 2, '0', STR_PAD_LEFT),
-                    'jenis'           => 'masuk',
-                    'status'          => $status,
+                    'id' => Str::uuid()->toString(),
+                    'sekolah_id' => $this->sekolah->id,
+                    'pegawai_id' => $pegawai->id,
+                    'tanggal' => "{$tahun}-{$bulan}-".str_pad($hari, 2, '0', STR_PAD_LEFT),
+                    'jenis' => 'masuk',
+                    'status' => $status,
                     'menit_terlambat' => $status === 'terlambat' ? 20 : 0,
-                    'sumber'          => in_array($status, ['izin', 'sakit']) ? 'izin' : 'qr',
-                    'created_at'      => now(),
-                    'updated_at'      => now(),
+                    'sumber' => in_array($status, ['izin', 'sakit']) ? 'izin' : 'qr',
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ];
             }
         }
 
         // Bulk insert untuk kecepatan setup test
         foreach (array_chunk($absensiData, 500) as $chunk) {
-            \Illuminate\Support\Facades\DB::table('absensi')->insert($chunk);
+            DB::table('absensi')->insert($chunk);
         }
 
         $service = app(RekapAbsensiService::class);
@@ -186,8 +188,8 @@ class RekapAbsensiTest extends TestCase
         setPermissionsTeamId($this->sekolah->id);
         $userGuru->assignRole('guru');
 
-        $pegawaiGuru  = Pegawai::factory()->create(['sekolah_id' => $this->sekolah->id, 'user_id' => $userGuru->id]);
-        $pegawaiLain  = Pegawai::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $pegawaiGuru = Pegawai::factory()->create(['sekolah_id' => $this->sekolah->id, 'user_id' => $userGuru->id]);
+        $pegawaiLain = Pegawai::factory()->create(['sekolah_id' => $this->sekolah->id]);
 
         // Absensi untuk kedua pegawai
         Absensi::factory()->create(['sekolah_id' => $this->sekolah->id, 'pegawai_id' => $pegawaiGuru->id, 'tanggal' => '2026-10-01', 'jenis' => 'masuk', 'status' => 'hadir', 'sumber' => 'qr']);
@@ -196,7 +198,7 @@ class RekapAbsensiTest extends TestCase
         // Guru akses rekap — harus dapat filter ke data sendiri di controller
         $response = $this->actingAs($userGuru)
             ->withSession(['sekolah_id' => $this->sekolah->id])
-            ->get(route('izin.rekap.index') . '?bulan=10&tahun=2026');
+            ->get(route('izin.rekap.index').'?bulan=10&tahun=2026');
 
         $response->assertOk();
         $rekap = $response->original->getData()['page']['props']['rekap'];

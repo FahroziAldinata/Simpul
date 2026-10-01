@@ -14,13 +14,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Model JenisIzin — konfigurasi jenis izin/cuti/sakit/dinas per sekolah (T-09.01).
  *
  * @property string $id
- * @property string|null $sekolah_id  null = default global (seed)
- * @property string $nama            "Cuti Tahunan", "Sakit", "Dinas Luar", "Izin"
- * @property string|null $kode       "cuti", "sakit", "dinas", "izin"
+ * @property string|null $sekolah_id null = default global (seed)
+ * @property string $nama "Cuti Tahunan", "Sakit", "Dinas Luar", "Izin"
+ * @property string|null $kode "cuti", "sakit", "dinas", "izin"
  * @property bool $butuh_lampiran
  * @property bool $butuh_persetujuan
  * @property bool $mengurangi_kuota_cuti
- * @property array<int, string> $urutan_approval  Array of role slugs ["waka_kurikulum","kepsek"]
+ * @property array<int, string> $urutan_approval Array of role slugs ["waka_kurikulum","kepsek"]
  * @property bool $is_aktif
  */
 class JenisIzin extends Model
@@ -45,11 +45,11 @@ class JenisIzin extends Model
     protected function casts(): array
     {
         return [
-            'butuh_lampiran'        => 'boolean',
-            'butuh_persetujuan'     => 'boolean',
+            'butuh_lampiran' => 'boolean',
+            'butuh_persetujuan' => 'boolean',
             'mengurangi_kuota_cuti' => 'boolean',
-            'urutan_approval'       => 'array',
-            'is_aktif'              => 'boolean',
+            'urutan_approval' => 'array',
+            'is_aktif' => 'boolean',
         ];
     }
 

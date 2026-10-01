@@ -10,7 +10,6 @@ use App\Services\IzinApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,7 +44,7 @@ class PengajuanIzinController extends Controller
         return Inertia::render('izin/PengajuanIndex', [
             'pengajuan' => $pengajuan,
             'jenisIzin' => $jenisIzin,
-            'pegawai'   => $pegawai ? ['id' => $pegawai->id, 'nama' => $pegawai->nama] : null,
+            'pegawai' => $pegawai ? ['id' => $pegawai->id, 'nama' => $pegawai->nama] : null,
         ]);
     }
 
@@ -62,11 +61,11 @@ class PengajuanIzinController extends Controller
         }
 
         $data = $request->validate([
-            'jenis_izin_id'   => ['required', 'uuid', 'exists:jenis_izin,id'],
-            'tanggal_mulai'   => ['required', 'date'],
+            'jenis_izin_id' => ['required', 'uuid', 'exists:jenis_izin,id'],
+            'tanggal_mulai' => ['required', 'date'],
             'tanggal_selesai' => ['required', 'date', 'gte:tanggal_mulai'],
-            'alasan'          => ['required', 'string', 'min:10', 'max:1000'],
-            'lampiran'        => ['nullable', 'file', 'max:2048'], // 2MB maks
+            'alasan' => ['required', 'string', 'min:10', 'max:1000'],
+            'lampiran' => ['nullable', 'file', 'max:2048'], // 2MB maks
         ]);
 
         $jenisIzin = JenisIzin::findOrFail($data['jenis_izin_id']);
@@ -76,10 +75,7 @@ class PengajuanIzinController extends Controller
         $lampiranMime = null;
 
         if ($request->hasFile('lampiran')) {
-            if (! $jenisIzin->butuh_lampiran && ! $request->hasFile('lampiran')) {
-                // Lampiran tidak diwajibkan, tapi boleh diunggah
-            }
-
+            // Lampiran tidak diwajibkan pada semua jenis izin, tapi boleh diunggah
             $file = $request->file('lampiran');
             $mime = $file->getMimeType(); // MIME asli dari konten, bukan ekstensi
 
@@ -97,19 +93,19 @@ class PengajuanIzinController extends Controller
         }
 
         $pengajuan = $this->izinService->ajukan($pegawai, [
-            'jenis_izin_id'   => $data['jenis_izin_id'],
-            'tanggal_mulai'   => $data['tanggal_mulai'],
+            'jenis_izin_id' => $data['jenis_izin_id'],
+            'tanggal_mulai' => $data['tanggal_mulai'],
             'tanggal_selesai' => $data['tanggal_selesai'],
-            'alasan'          => $data['alasan'],
-            'lampiran_path'   => $lampiranPath,
-            'lampiran_mime'   => $lampiranMime,
+            'alasan' => $data['alasan'],
+            'lampiran_path' => $lampiranPath,
+            'lampiran_mime' => $lampiranMime,
         ]);
 
         if ($request->wantsJson()) {
             return response()->json([
                 'message' => 'Pengajuan izin berhasil dikirim.',
-                'id'      => $pengajuan->id,
-                'status'  => $pengajuan->status->value,
+                'id' => $pengajuan->id,
+                'status' => $pengajuan->status->value,
             ]);
         }
 

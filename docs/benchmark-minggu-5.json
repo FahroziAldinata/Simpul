@@ -6,69 +6,69 @@
     "benchmark_25_per_page": {
         "page_size": 25,
         "query_count": 14,
-        "duration_ms": 117.56
+        "duration_ms": 120.2
     },
     "benchmark_100_per_page": {
         "page_size": 100,
         "query_count": 9,
-        "duration_ms": 217.05
+        "duration_ms": 206.81
     },
     "queries_sample_25": [
         {
             "sql": "select * from \"semester\" where \"sekolah_id\" = ? and \"semester\".\"sekolah_id\" = ? order by \"tanggal_mulai\" desc",
-            "time_ms": 0.96
+            "time_ms": 1.05
         },
         {
             "sql": "select * from \"tahun_ajaran\" where \"tahun_ajaran\".\"id\" in (?) and \"tahun_ajaran\".\"sekolah_id\" = ?",
-            "time_ms": 0.69
+            "time_ms": 0.71
         },
         {
             "sql": "select \"roles\".*, \"model_has_roles\".\"model_id\" as \"pivot_model_id\", \"model_has_roles\".\"role_id\" as \"pivot_role_id\", \"model_has_roles\".\"model_type\" as \"pivot_model_type\", \"model_has_roles\".\"sekolah_id\" as \"pivot_sekolah_id\" from \"roles\" inner join \"model_has_roles\" on \"roles\".\"id\" = \"model_has_roles\".\"role_id\" where \"model_has_roles\".\"sekolah_id\" = ? and (\"roles\".\"sekolah_id\" is null or \"roles\".\"sekolah_id\" = ?) and \"model_has_roles\".\"model_id\" in (515) and \"model_has_roles\".\"model_type\" = ?",
-            "time_ms": 0.92
+            "time_ms": 0.86
         },
         {
             "sql": "select \"permissions\".*, \"model_has_permissions\".\"model_id\" as \"pivot_model_id\", \"model_has_permissions\".\"permission_id\" as \"pivot_permission_id\", \"model_has_permissions\".\"model_type\" as \"pivot_model_type\", \"model_has_permissions\".\"sekolah_id\" as \"pivot_sekolah_id\" from \"permissions\" inner join \"model_has_permissions\" on \"permissions\".\"id\" = \"model_has_permissions\".\"permission_id\" where \"model_has_permissions\".\"model_id\" = ? and \"model_has_permissions\".\"model_type\" = ? and \"model_has_permissions\".\"sekolah_id\" = ?",
-            "time_ms": 1.28
-        },
-        {
-            "sql": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" inner join \"role_has_permissions\" on \"permissions\".\"id\" = \"role_has_permissions\".\"permission_id\" where \"role_has_permissions\".\"role_id\" in (1710)",
-            "time_ms": 0.91
-        },
-        {
-            "sql": "select * from \"permissions\"",
-            "time_ms": 0.76
-        },
-        {
-            "sql": "select \"roles\".*, \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\", \"role_has_permissions\".\"role_id\" as \"pivot_role_id\" from \"roles\" inner join \"role_has_permissions\" on \"roles\".\"id\" = \"role_has_permissions\".\"role_id\" where \"role_has_permissions\".\"permission_id\" in (5125, 5126, 5127, 5128, 5129, 5130, 5131, 5132, 5133, 5134, 5135, 5136, 5137, 5138, 5139, 5140, 5141, 5142, 5143, 5144, 5145)",
-            "time_ms": 1.35
-        },
-        {
-            "sql": "select * from \"semester\" where \"is_aktif\" = ? and \"semester\".\"sekolah_id\" = ? limit 1",
-            "time_ms": 0.99
-        },
-        {
-            "sql": "select count(*) as \"aggregate\" from \"siswa\" where \"siswa\".\"sekolah_id\" = ? and \"siswa\".\"deleted_at\" is null",
-            "time_ms": 1.01
-        },
-        {
-            "sql": "select * from \"siswa\" where \"siswa\".\"sekolah_id\" = ? and \"siswa\".\"deleted_at\" is null order by \"nama\" asc limit 25 offset 0",
-            "time_ms": 1.07
-        },
-        {
-            "sql": "select * from \"wali_siswa\" where \"wali_siswa\".\"siswa_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"wali_siswa\".\"sekolah_id\" = ?",
             "time_ms": 1.52
         },
         {
+            "sql": "select \"permissions\".*, \"role_has_permissions\".\"role_id\" as \"pivot_role_id\", \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\" from \"permissions\" inner join \"role_has_permissions\" on \"permissions\".\"id\" = \"role_has_permissions\".\"permission_id\" where \"role_has_permissions\".\"role_id\" in (1710)",
+            "time_ms": 0.84
+        },
+        {
+            "sql": "select * from \"permissions\"",
+            "time_ms": 0.84
+        },
+        {
+            "sql": "select \"roles\".*, \"role_has_permissions\".\"permission_id\" as \"pivot_permission_id\", \"role_has_permissions\".\"role_id\" as \"pivot_role_id\" from \"roles\" inner join \"role_has_permissions\" on \"roles\".\"id\" = \"role_has_permissions\".\"role_id\" where \"role_has_permissions\".\"permission_id\" in (5125, 5126, 5127, 5128, 5129, 5130, 5131, 5132, 5133, 5134, 5135, 5136, 5137, 5138, 5139, 5140, 5141, 5142, 5143, 5144, 5145)",
+            "time_ms": 1.14
+        },
+        {
+            "sql": "select * from \"semester\" where \"is_aktif\" = ? and \"semester\".\"sekolah_id\" = ? limit 1",
+            "time_ms": 0.95
+        },
+        {
+            "sql": "select count(*) as \"aggregate\" from \"siswa\" where \"siswa\".\"sekolah_id\" = ? and \"siswa\".\"deleted_at\" is null",
+            "time_ms": 0.96
+        },
+        {
+            "sql": "select * from \"siswa\" where \"siswa\".\"sekolah_id\" = ? and \"siswa\".\"deleted_at\" is null order by \"nama\" asc limit 25 offset 0",
+            "time_ms": 1.32
+        },
+        {
+            "sql": "select * from \"wali_siswa\" where \"wali_siswa\".\"siswa_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"wali_siswa\".\"sekolah_id\" = ?",
+            "time_ms": 1.34
+        },
+        {
             "sql": "select * from \"anggota_rombel\" where exists (select * from \"semester\" where \"anggota_rombel\".\"semester_id\" = \"semester\".\"id\" and \"is_aktif\" = ? and \"semester\".\"sekolah_id\" = ?) and \"anggota_rombel\".\"siswa_id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and \"anggota_rombel\".\"sekolah_id\" = ?",
-            "time_ms": 1.24
+            "time_ms": 2.38
         },
         {
             "sql": "select * from \"rombel\" where \"rombel\".\"id\" in (?, ?, ?, ?, ?, ?, ?, ?, ?) and \"rombel\".\"sekolah_id\" = ?",
-            "time_ms": 0.72
+            "time_ms": 0.87
         },
         {
             "sql": "select \"rombel\".*, (select count(*) from \"anggota_rombel\" where \"rombel\".\"id\" = \"anggota_rombel\".\"rombel_id\" and exists (select * from \"siswa\" where \"anggota_rombel\".\"siswa_id\" = \"siswa\".\"id\" and \"status\" = ? and \"siswa\".\"sekolah_id\" = ? and \"siswa\".\"deleted_at\" is null) and \"anggota_rombel\".\"sekolah_id\" = ?) as \"jumlah_siswa\" from \"rombel\" where \"semester_id\" = ? and \"rombel\".\"sekolah_id\" = ? order by \"tingkat\" asc, \"nama\" asc",
-            "time_ms": 25.84
+            "time_ms": 27.38
         }
     ]
 }

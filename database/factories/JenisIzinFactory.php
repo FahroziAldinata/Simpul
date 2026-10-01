@@ -15,34 +15,34 @@ class JenisIzinFactory extends Factory
     public function definition(): array
     {
         return [
-            'sekolah_id'            => null,
-            'nama'                  => $this->faker->unique()->words(2, true),
-            'kode'                  => $this->faker->unique()->slug(1),
-            'butuh_lampiran'        => false,
-            'butuh_persetujuan'     => true,
+            'sekolah_id' => null,
+            'nama' => $this->faker->unique()->words(2, true),
+            'kode' => $this->faker->unique()->slug(1),
+            'butuh_lampiran' => false,
+            'butuh_persetujuan' => true,
             'mengurangi_kuota_cuti' => false,
-            'urutan_approval'       => ['kepsek'],
-            'is_aktif'              => true,
+            'urutan_approval' => ['kepsek'],
+            'is_aktif' => true,
         ];
     }
 
     public function cuti(): static
     {
         return $this->state([
-            'nama'                  => 'Cuti Tahunan',
-            'kode'                  => 'cuti',
+            'nama' => 'Cuti Tahunan',
+            'kode' => 'cuti',
             'mengurangi_kuota_cuti' => true,
-            'urutan_approval'       => ['kepsek'],
+            'urutan_approval' => ['kepsek'],
         ]);
     }
 
     public function sakit(): static
     {
         return $this->state([
-            'nama'             => 'Sakit',
-            'kode'             => 'sakit',
-            'butuh_lampiran'   => true,
-            'urutan_approval'  => [],
+            'nama' => 'Sakit',
+            'kode' => 'sakit',
+            'butuh_lampiran' => true,
+            'urutan_approval' => [],
             'butuh_persetujuan' => false,
         ]);
     }
@@ -51,7 +51,7 @@ class JenisIzinFactory extends Factory
     {
         return $this->state([
             'butuh_persetujuan' => false,
-            'urutan_approval'   => [],
+            'urutan_approval' => [],
         ]);
     }
 }

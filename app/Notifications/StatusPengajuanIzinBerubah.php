@@ -31,18 +31,18 @@ class StatusPengajuanIzinBerubah extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         $pesan = match ($this->kejadian) {
-            'disetujui'          => 'Pengajuan '.$this->pengajuan->jenisIzin?->nama.' Anda telah disetujui.',
-            'ditolak'            => 'Pengajuan '.$this->pengajuan->jenisIzin?->nama.' Anda ditolak.',
+            'disetujui' => 'Pengajuan '.$this->pengajuan->jenisIzin?->nama.' Anda telah disetujui.',
+            'ditolak' => 'Pengajuan '.$this->pengajuan->jenisIzin?->nama.' Anda ditolak.',
             'dibatalkan_konflik' => 'Pengajuan '.$this->pengajuan->jenisIzin?->nama.' Anda dibatalkan karena Anda sudah tercatat hadir pada tanggal tersebut.',
-            default              => 'Status pengajuan izin Anda telah berubah.',
+            default => 'Status pengajuan izin Anda telah berubah.',
         };
 
         return [
-            'type'              => 'status_pengajuan_izin_berubah',
+            'type' => 'status_pengajuan_izin_berubah',
             'pengajuan_izin_id' => $this->pengajuan->id,
-            'kejadian'          => $this->kejadian,
-            'status_baru'       => $this->pengajuan->status->value,
-            'pesan'             => $pesan,
+            'kejadian' => $this->kejadian,
+            'status_baru' => $this->pengajuan->status->value,
+            'pesan' => $pesan,
         ];
     }
 }

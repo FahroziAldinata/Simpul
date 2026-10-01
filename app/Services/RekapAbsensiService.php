@@ -7,7 +7,6 @@ use App\Models\Absensi;
 use App\Models\Pegawai;
 use App\Models\Sekolah;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 
 /**
  * RekapAbsensiService — matriks rekap bulanan per sekolah (T-09.07).
@@ -42,7 +41,7 @@ class RekapAbsensiService
     {
         $mulaiWaktu = hrtime(true);
 
-        $mulai   = Carbon::create($tahun, $bulan, 1)->startOfDay();
+        $mulai = Carbon::create($tahun, $bulan, 1)->startOfDay();
         $selesai = $mulai->copy()->endOfMonth()->endOfDay();
         $hariDalamBulan = $mulai->daysInMonth;
 
@@ -58,11 +57,11 @@ class RekapAbsensiService
 
         if ($pegawaiList->isEmpty()) {
             return [
-                'bulan'            => $bulan,
-                'tahun'            => $tahun,
+                'bulan' => $bulan,
+                'tahun' => $tahun,
                 'hari_dalam_bulan' => $hariDalamBulan,
-                'baris'            => [],
-                'durasi_ms'        => 0,
+                'baris' => [],
+                'durasi_ms' => 0,
             ];
         }
 
@@ -79,58 +78,51 @@ class RekapAbsensiService
         // Build matriks
         $baris = [];
         foreach ($pegawaiList as $pegawai) {
-            $sel       = [];
+            $sel = [];
             $ringkasan = ['H' => 0, 'T' => 0, 'I' => 0, 'S' => 0, 'C' => 0, 'D' => 0, 'A' => 0, 'total_menit' => 0];
 
             for ($hari = 1; $hari <= $hariDalamBulan; $hari++) {
                 $tanggalStr = Carbon::create($tahun, $bulan, $hari)->toDateString();
-                $key        = $pegawai->id.'_'.$tanggalStr;
+                $key = $pegawai->id.'_'.$tanggalStr;
 
                 $absensi = $absensiRows->get($key)?->first();
 
-                if ($absensi && $absensi->status) {
-                    $status = $absensi->status instanceof StatusAbsensi
-                        ? $absensi->status
-                        : StatusAbsensi::tryFrom((string) $absensi->status);
+                if ($absensi && $absensi->status instanceof StatusAbsensi) {
+                    $status = $absensi->status;
+                    $label = $status->labelRekap();
+                    $warna = $status->warnaTailwind();
+                    $menit = (int) $absensi->menit_terlambat;
 
-                    if ($status) {
-                        $label  = $status->labelRekap();
-                        $warna  = $status->warnaTailwind();
-                        $menit  = (int) $absensi->menit_terlambat;
+                    $sel[$tanggalStr] = ['label' => $label, 'warna' => $warna, 'menit' => $menit];
 
-                        $sel[$tanggalStr] = ['label' => $label, 'warna' => $warna, 'menit' => $menit];
-
-                        // Update ringkasan
-                        if (isset($ringkasan[$label])) {
-                            $ringkasan[$label]++;
-                        }
-                        $ringkasan['total_menit'] += $menit;
-                    } else {
-                        $sel[$tanggalStr] = null; // Status tidak dikenali
+                    // Update ringkasan
+                    if (isset($ringkasan[$label])) {
+                        $ringkasan[$label]++;
                     }
+                    $ringkasan['total_menit'] += $menit;
                 } else {
-                    $sel[$tanggalStr] = null; // Tidak ada data absensi
+                    $sel[$tanggalStr] = null; // Tidak ada data absensi atau status null
                 }
             }
 
             $baris[] = [
                 'pegawai_id' => $pegawai->id,
-                'nama'       => $pegawai->nama,
-                'nip'        => $pegawai->nip,
-                'jenis'      => $pegawai->jenis,
-                'sel'        => $sel,
-                'ringkasan'  => $ringkasan,
+                'nama' => $pegawai->nama,
+                'nip' => $pegawai->nip,
+                'jenis' => $pegawai->jenis,
+                'sel' => $sel,
+                'ringkasan' => $ringkasan,
             ];
         }
 
         $durasiMs = (int) round((hrtime(true) - $mulaiWaktu) / 1_000_000);
 
         return [
-            'bulan'            => $bulan,
-            'tahun'            => $tahun,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
             'hari_dalam_bulan' => $hariDalamBulan,
-            'baris'            => $baris,
-            'durasi_ms'        => $durasiMs,
+            'baris' => $baris,
+            'durasi_ms' => $durasiMs,
         ];
     }
 }

@@ -239,7 +239,7 @@ class AbsensiQrTest extends TestCase
         $sekolahB = Sekolah::factory()->create();
         $titikB = TitikAbsen::factory()->create([
             'sekolah_id' => $sekolahB->id,
-            'is_aktif'   => true,
+            'is_aktif' => true,
         ]);
 
         $payloadSekolahB = $this->qrTokenService->buatPayloadQr($titikB);
@@ -248,7 +248,7 @@ class AbsensiQrTest extends TestCase
             ->withSession(['sekolah_id' => $this->sekolah->id])
             ->postJson(route('absensi.scan.simpan'), [
                 'payload_qr' => $payloadSekolahB,
-                'jenis'      => 'masuk',
+                'jenis' => 'masuk',
             ]);
 
         // Isolasi tenant: 404

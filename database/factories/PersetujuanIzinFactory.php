@@ -18,19 +18,19 @@ class PersetujuanIzinFactory extends Factory
     {
         return [
             'pengajuan_izin_id' => PengajuanIzin::factory(),
-            'urutan'            => 1,
-            'approver_role'     => 'kepsek',
-            'approver_id'       => null,
-            'status'            => StatusPersetujuanIzin::Menunggu,
-            'catatan'           => null,
-            'diputuskan_pada'   => null,
+            'urutan' => 1,
+            'approver_role' => 'kepsek',
+            'approver_id' => null,
+            'status' => StatusPersetujuanIzin::Menunggu,
+            'catatan' => null,
+            'diputuskan_pada' => null,
         ];
     }
 
     public function disetujui(): static
     {
         return $this->state([
-            'status'          => StatusPersetujuanIzin::Disetujui,
+            'status' => StatusPersetujuanIzin::Disetujui,
             'diputuskan_pada' => now(),
         ]);
     }
@@ -38,8 +38,8 @@ class PersetujuanIzinFactory extends Factory
     public function ditolak(): static
     {
         return $this->state([
-            'status'          => StatusPersetujuanIzin::Ditolak,
-            'catatan'         => 'Ditolak oleh approver.',
+            'status' => StatusPersetujuanIzin::Ditolak,
+            'catatan' => 'Ditolak oleh approver.',
             'diputuskan_pada' => now(),
         ]);
     }

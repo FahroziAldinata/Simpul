@@ -44,7 +44,7 @@ class KuotaCuti extends Model
     {
         return [
             'kuota_hari' => 'integer',
-            'terpakai'   => 'integer',
+            'terpakai' => 'integer',
         ];
     }
 

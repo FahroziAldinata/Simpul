@@ -32,8 +32,8 @@ class RekapAbsensiController extends Controller
         );
 
         $sekolahId = session('sekolah_id');
-        $bulan     = (int) $request->get('bulan', now()->month);
-        $tahun     = (int) $request->get('tahun', now()->year);
+        $bulan = (int) $request->get('bulan', now()->month);
+        $tahun = (int) $request->get('tahun', now()->year);
 
         // Guru/Wali Kelas hanya bisa lihat data sendiri
         $pegawaiIdFilter = null;
@@ -58,11 +58,11 @@ class RekapAbsensiController extends Controller
             : collect();
 
         return Inertia::render('izin/RekapAbsensi', [
-            'rekap'      => $rekap,
-            'kuotaCuti'  => $kuotaCuti,
-            'bulan'      => $bulan,
-            'tahun'      => $tahun,
-            'durasiMs'   => $rekap['durasi_ms'],
+            'rekap' => $rekap,
+            'kuotaCuti' => $kuotaCuti,
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'durasiMs' => $rekap['durasi_ms'],
         ]);
     }
 }

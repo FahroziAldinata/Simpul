@@ -5,6 +5,7 @@ namespace Tests\Feature\Absensi;
 use App\Models\Sekolah;
 use App\Models\TitikAbsen;
 use App\Models\User;
+use App\Services\QrTokenService;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -96,7 +97,7 @@ class TampilanQrTest extends TestCase
 
     public function test_operator_dapat_merotasi_secret_titik_absen_dan_qr_lama_langsung_tidak_valid(): void
     {
-        $qrService = new \App\Services\QrTokenService();
+        $qrService = new QrTokenService;
         $secretLama = $this->titik->secret;
 
         // Generate payload sebelum rotasi

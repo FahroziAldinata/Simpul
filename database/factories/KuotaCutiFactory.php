@@ -18,11 +18,11 @@ class KuotaCutiFactory extends Factory
     public function definition(): array
     {
         return [
-            'sekolah_id'      => Sekolah::factory(),
-            'pegawai_id'      => Pegawai::factory(),
+            'sekolah_id' => Sekolah::factory(),
+            'pegawai_id' => Pegawai::factory(),
             'tahun_ajaran_id' => TahunAjaran::factory(),
-            'kuota_hari'      => 12,
-            'terpakai'        => 0,
+            'kuota_hari' => 12,
+            'terpakai' => 0,
         ];
     }
 }

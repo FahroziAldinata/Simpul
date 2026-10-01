@@ -4,7 +4,6 @@ namespace App\Exports;
 
 use App\Models\Sekolah;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Events\AfterSheet;
@@ -29,9 +28,23 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
  */
 class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
 {
-    private const HEADER_ROWS = 5; // baris kop + judul sebelum data dimulai
-    private const COL_KODE = ['H', 'T', 'S', 'I', 'C', 'D', 'A'];
 
+    /**
+     * @param array{
+     *     bulan: int,
+     *     tahun: int,
+     *     hari_dalam_bulan: int,
+     *     baris: array<int, array{
+     *         pegawai_id: string,
+     *         nama: string,
+     *         nip: string|null,
+     *         jenis: string,
+     *         sel: array<string, array{label: string, warna: string, menit: int}|null>,
+     *         ringkasan: array{H: int, T: int, I: int, S: int, C: int, D: int, A: int, total_menit: int},
+     *     }>,
+     *     durasi_ms: int,
+     * } $rekap
+     */
     public function __construct(
         private readonly array $rekap,
         private readonly ?Sekolah $sekolah,
@@ -45,8 +58,8 @@ class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
         $rows = [];
 
         // Baris 1–2: Kop sekolah
-        $rows[] = [$this->sekolah?->nama ?? 'Sekolah'];
-        $rows[] = ['NPSN: '.($this->sekolah?->npsn ?? '-').' | '.($this->sekolah?->alamat ?? '')];
+        $rows[] = [$this->sekolah !== null ? $this->sekolah->nama : 'Sekolah'];
+        $rows[] = ['NPSN: '.($this->sekolah !== null ? $this->sekolah->npsn : '-').' | '.($this->sekolah !== null ? $this->sekolah->alamat : '')];
 
         // Baris 3: kosong
         $rows[] = [];
@@ -93,6 +106,7 @@ class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
         return $rows;
     }
 
+    /** @return array<string, mixed> */
     public function styles(Worksheet $sheet): array
     {
         // Merge kop
@@ -104,7 +118,7 @@ class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
         $sheet->getStyle('A6:L6')->applyFromArray([
             'font' => ['bold' => true],
             'fill' => [
-                'fillType'   => Fill::FILL_SOLID,
+                'fillType' => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'D1FAE5'],
             ],
             'borders' => [
@@ -115,7 +129,7 @@ class RekapAbsensiExport implements FromArray, WithEvents, WithStyles
 
         // Gaya sel data
         $dataStart = 7;
-        $dataEnd   = $dataStart + count($this->rekap['baris']) - 1;
+        $dataEnd = $dataStart + count($this->rekap['baris']) - 1;
         if ($dataEnd >= $dataStart) {
             $sheet->getStyle("A{$dataStart}:L{$dataEnd}")->applyFromArray([
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],

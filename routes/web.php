@@ -4,15 +4,15 @@ use App\Http\Controllers\Absensi\AbsensiController;
 use App\Http\Controllers\Absensi\JamKerjaController;
 use App\Http\Controllers\Absensi\TampilanQrController;
 use App\Http\Controllers\Absensi\TitikAbsenController;
+use App\Http\Controllers\AlokasiJamMapelController;
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BerkasSiswaController;
+use App\Http\Controllers\ImporSiswaController;
 use App\Http\Controllers\Izin\EksporAbsensiController;
 use App\Http\Controllers\Izin\InboxPersetujuanController;
 use App\Http\Controllers\Izin\JenisIzinController;
 use App\Http\Controllers\Izin\PengajuanIzinController;
 use App\Http\Controllers\Izin\RekapAbsensiController;
-use App\Http\Controllers\AlokasiJamMapelController;
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\BerkasSiswaController;
-use App\Http\Controllers\ImporSiswaController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\KartuPegawaiController;
@@ -226,7 +226,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // T-08.08 — Absen Manual (Operator/Super Admin)
     Route::get('absensi/manual', [AbsensiController::class, 'indexManual'])->name('absensi.manual.index');
     Route::post('absensi/manual', [AbsensiController::class, 'simpanManual'])->name('absensi.manual.simpan');
-
 
     // =========================================================================
     // MINGGU 9 — IZIN, CUTI & REKAP

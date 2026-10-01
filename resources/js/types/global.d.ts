@@ -36,3 +36,6 @@ declare module 'vue' {
         $headManager: ReturnType<typeof createHeadManager>;
     }
 }
+
+// Ziggy — injected globally via app.js at runtime
+declare function route(name: string, params?: Record<string, unknown>, absolute?: boolean): string;

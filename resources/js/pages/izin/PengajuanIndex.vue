@@ -45,7 +45,8 @@ const form = useForm({
     lampiran: null as File | null,
 })
 
-function pilihJenis(id: string) {
+function pilihJenis(id: unknown) {
+    if (typeof id !== 'string') return
     selectedJenis.value = props.jenisIzin.find(j => j.id === id) ?? null
     form.jenis_izin_id = id
 }

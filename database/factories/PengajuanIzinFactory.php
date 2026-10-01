@@ -22,15 +22,15 @@ class PengajuanIzinFactory extends Factory
         $mulai = Carbon::parse($this->faker->dateTimeBetween('-30 days', '+7 days'));
 
         return [
-            'sekolah_id'     => Sekolah::factory(),
-            'pegawai_id'     => Pegawai::factory(),
-            'jenis_izin_id'  => JenisIzin::factory(),
-            'tanggal_mulai'  => $mulai->toDateString(),
+            'sekolah_id' => Sekolah::factory(),
+            'pegawai_id' => Pegawai::factory(),
+            'jenis_izin_id' => JenisIzin::factory(),
+            'tanggal_mulai' => $mulai->toDateString(),
             'tanggal_selesai' => $mulai->copy()->addDays(rand(0, 2))->toDateString(),
-            'alasan'         => $this->faker->sentence(8),
-            'lampiran_path'  => null,
-            'lampiran_mime'  => null,
-            'status'         => StatusPengajuanIzin::Menunggu,
+            'alasan' => $this->faker->sentence(8),
+            'lampiran_path' => null,
+            'lampiran_mime' => null,
+            'status' => StatusPengajuanIzin::Menunggu,
         ];
     }
 

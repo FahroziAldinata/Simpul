@@ -52,9 +52,9 @@ class PengajuanIzin extends Model
     protected function casts(): array
     {
         return [
-            'tanggal_mulai'   => 'date',
+            'tanggal_mulai' => 'date',
             'tanggal_selesai' => 'date',
-            'status'          => StatusPengajuanIzin::class,
+            'status' => StatusPengajuanIzin::class,
         ];
     }
 

@@ -16,9 +16,9 @@ use Illuminate\Support\Carbon;
  *
  * @property string $id
  * @property string $pengajuan_izin_id
- * @property int $urutan              Urutan langkah (1, 2, 3...)
- * @property string $approver_role    Role slug yang berhak di langkah ini
- * @property int|null $approver_id   User yang memutuskan (null = belum)
+ * @property int $urutan Urutan langkah (1, 2, 3...)
+ * @property string $approver_role Role slug yang berhak di langkah ini
+ * @property int|null $approver_id User yang memutuskan (null = belum)
  * @property StatusPersetujuanIzin $status
  * @property string|null $catatan
  * @property Carbon|null $diputuskan_pada
@@ -44,8 +44,8 @@ class PersetujuanIzin extends Model
     protected function casts(): array
     {
         return [
-            'urutan'          => 'integer',
-            'status'          => StatusPersetujuanIzin::class,
+            'urutan' => 'integer',
+            'status' => StatusPersetujuanIzin::class,
             'diputuskan_pada' => 'datetime',
         ];
     }

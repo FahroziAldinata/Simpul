@@ -13,6 +13,8 @@ use App\Models\PengajuanIzin;
 use App\Models\PersetujuanIzin;
 use App\Models\TahunAjaran;
 use App\Models\User;
+use App\Notifications\PengajuanIzinMenungguPersetujuan;
+use App\Notifications\StatusPengajuanIzinBerubah;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -45,7 +47,7 @@ class IzinApprovalService
      */
     public function ajukan(Pegawai $pegawai, array $data): PengajuanIzin
     {
-        $mulai   = Carbon::parse($data['tanggal_mulai'])->startOfDay();
+        $mulai = Carbon::parse($data['tanggal_mulai'])->startOfDay();
         $selesai = Carbon::parse($data['tanggal_selesai'])->startOfDay();
 
         // Validasi: tanggal_mulai <= tanggal_selesai
@@ -70,15 +72,15 @@ class IzinApprovalService
             : StatusPengajuanIzin::Disetujui;
 
         $pengajuan = PengajuanIzin::create([
-            'sekolah_id'      => $pegawai->sekolah_id,
-            'pegawai_id'      => $pegawai->id,
-            'jenis_izin_id'   => $jenisIzin->id,
-            'tanggal_mulai'   => $mulai->toDateString(),
+            'sekolah_id' => $pegawai->sekolah_id,
+            'pegawai_id' => $pegawai->id,
+            'jenis_izin_id' => $jenisIzin->id,
+            'tanggal_mulai' => $mulai->toDateString(),
             'tanggal_selesai' => $selesai->toDateString(),
-            'alasan'          => $data['alasan'],
-            'lampiran_path'   => $data['lampiran_path'] ?? null,
-            'lampiran_mime'   => $data['lampiran_mime'] ?? null,
-            'status'          => $status,
+            'alasan' => $data['alasan'],
+            'lampiran_path' => $data['lampiran_path'] ?? null,
+            'lampiran_mime' => $data['lampiran_mime'] ?? null,
+            'status' => $status,
         ]);
 
         if ($jenisIzin->butuh_persetujuan) {
@@ -131,9 +133,9 @@ class IzinApprovalService
         }
 
         $langkah->update([
-            'approver_id'     => $approver->id,
-            'status'          => $setuju ? StatusPersetujuanIzin::Disetujui : StatusPersetujuanIzin::Ditolak,
-            'catatan'         => $catatan,
+            'approver_id' => $approver->id,
+            'status' => $setuju ? StatusPersetujuanIzin::Disetujui : StatusPersetujuanIzin::Ditolak,
+            'catatan' => $catatan,
             'diputuskan_pada' => now(),
         ]);
 
@@ -167,7 +169,7 @@ class IzinApprovalService
      */
     private function selesaikanPersetujuan(PengajuanIzin $pengajuan): void
     {
-        $mulai   = $pengajuan->tanggal_mulai;
+        $mulai = $pengajuan->tanggal_mulai;
         $selesai = $pengajuan->tanggal_selesai;
         $pegawai = $pengajuan->pegawai;
 
@@ -204,9 +206,9 @@ class IzinApprovalService
         foreach ($urutanApproval as $urutan => $roleSlug) {
             PersetujuanIzin::create([
                 'pengajuan_izin_id' => $pengajuan->id,
-                'urutan'            => $urutan + 1,
-                'approver_role'     => $roleSlug,
-                'status'            => StatusPersetujuanIzin::Menunggu,
+                'urutan' => $urutan + 1,
+                'approver_role' => $roleSlug,
+                'status' => StatusPersetujuanIzin::Menunggu,
             ]);
         }
     }
@@ -234,14 +236,14 @@ class IzinApprovalService
 
             if (! $sudahAda) {
                 Absensi::create([
-                    'sekolah_id'        => $pengajuan->sekolah_id,
-                    'pegawai_id'        => $pengajuan->pegawai_id,
-                    'tanggal'           => $tanggalStr,
-                    'jenis'             => 'masuk',
-                    'waktu_server'      => null,
-                    'status'            => $status->value,
-                    'menit_terlambat'   => 0,
-                    'sumber'            => 'izin',
+                    'sekolah_id' => $pengajuan->sekolah_id,
+                    'pegawai_id' => $pengajuan->pegawai_id,
+                    'tanggal' => $tanggalStr,
+                    'jenis' => 'masuk',
+                    'waktu_server' => null,
+                    'status' => $status->value,
+                    'menit_terlambat' => 0,
+                    'sumber' => 'izin',
                     'pengajuan_izin_id' => $pengajuan->id,
                 ]);
             }
@@ -266,13 +268,13 @@ class IzinApprovalService
 
         $kuota = KuotaCuti::firstOrCreate(
             [
-                'pegawai_id'      => $pengajuan->pegawai_id,
+                'pegawai_id' => $pengajuan->pegawai_id,
                 'tahun_ajaran_id' => $tahunAjaran->id,
             ],
             [
                 'sekolah_id' => $pengajuan->sekolah_id,
                 'kuota_hari' => 12,
-                'terpakai'   => 0,
+                'terpakai' => 0,
             ]
         );
 
@@ -285,7 +287,7 @@ class IzinApprovalService
      *
      * @throws ValidationException
      */
-    public function pastikanTidakAdaAbsensiHadir(Pegawai $pegawai, Carbon|\DateTimeInterface $mulai, Carbon|\DateTimeInterface $selesai): void
+    public function pastikanTidakAdaAbsensiHadir(Pegawai $pegawai, \Carbon\CarbonInterface $mulai, \Carbon\CarbonInterface $selesai): void
     {
         $konflik = Absensi::where('pegawai_id', $pegawai->id)
             ->whereBetween('tanggal', [$mulai->toDateString(), $selesai->toDateString()])
@@ -329,7 +331,7 @@ class IzinApprovalService
      *
      * @throws ValidationException
      */
-    private function pastikanKuotaCukup(Pegawai $pegawai, Carbon|\DateTimeInterface $mulai, Carbon|\DateTimeInterface $selesai): void
+    private function pastikanKuotaCukup(Pegawai $pegawai, \Carbon\CarbonInterface $mulai, \Carbon\CarbonInterface $selesai): void
     {
         $tahunAjaran = TahunAjaran::where('sekolah_id', $pegawai->sekolah_id)
             ->where('is_aktif', true)
@@ -344,7 +346,7 @@ class IzinApprovalService
             ->first();
 
         $kuotaHari = $kuota ? $kuota->kuota_hari : 12;
-        $terpakai  = $kuota ? $kuota->terpakai : 0;
+        $terpakai = $kuota ? $kuota->terpakai : 0;
 
         $jumlahDiajukan = (int) $mulai->diffInDays($selesai) + 1;
 
@@ -362,7 +364,7 @@ class IzinApprovalService
     {
         return match ($jenisIzin->kode) {
             'sakit' => StatusAbsensi::Sakit,
-            'cuti'  => StatusAbsensi::Cuti,
+            'cuti' => StatusAbsensi::Cuti,
             'dinas' => StatusAbsensi::Dinas,
             default => StatusAbsensi::Izin,
         };
@@ -392,7 +394,7 @@ class IzinApprovalService
             ->get();
 
         foreach ($approvers as $approver) {
-            $approver->notify(new \App\Notifications\PengajuanIzinMenungguPersetujuan($pengajuan, $langkahAktif->urutan));
+            $approver->notify(new PengajuanIzinMenungguPersetujuan($pengajuan, $langkahAktif->urutan));
         }
     }
 
@@ -406,6 +408,6 @@ class IzinApprovalService
             return;
         }
 
-        $user->notify(new \App\Notifications\StatusPengajuanIzinBerubah($pengajuan, $kejadian));
+        $user->notify(new StatusPengajuanIzinBerubah($pengajuan, $kejadian));
     }
 }

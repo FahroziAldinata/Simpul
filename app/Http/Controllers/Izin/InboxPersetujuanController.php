@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Izin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PengajuanIzin;
 use App\Models\PersetujuanIzin;
 use App\Services\IzinApprovalService;
 use Illuminate\Http\RedirectResponse;
@@ -74,7 +73,7 @@ class InboxPersetujuanController extends Controller
 
         $data = $request->validate([
             'keputusan' => ['required', 'in:disetujui,ditolak'],
-            'catatan'   => ['nullable', 'string', 'max:500'],
+            'catatan' => ['nullable', 'string', 'max:500'],
         ]);
 
         $setuju = $data['keputusan'] === 'disetujui';

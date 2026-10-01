@@ -41,14 +41,14 @@ enum StatusAbsensi: string
     public function labelRekap(): string
     {
         return match ($this) {
-            self::Hadir      => 'H',
-            self::Terlambat  => 'T',
+            self::Hadir => 'H',
+            self::Terlambat => 'T',
             self::PulangCepat => 'P',
-            self::Alfa       => 'A',
-            self::Izin       => 'I',
-            self::Sakit      => 'S',
-            self::Cuti       => 'C',
-            self::Dinas      => 'D',
+            self::Alfa => 'A',
+            self::Izin => 'I',
+            self::Sakit => 'S',
+            self::Cuti => 'C',
+            self::Dinas => 'D',
         };
     }
 
@@ -58,14 +58,14 @@ enum StatusAbsensi: string
     public function warnaTailwind(): string
     {
         return match ($this) {
-            self::Hadir      => 'bg-green-100 text-green-800',
-            self::Terlambat  => 'bg-yellow-100 text-yellow-800',
+            self::Hadir => 'bg-green-100 text-green-800',
+            self::Terlambat => 'bg-yellow-100 text-yellow-800',
             self::PulangCepat => 'bg-orange-100 text-orange-800',
-            self::Alfa       => 'bg-red-100 text-red-800',
-            self::Izin       => 'bg-blue-100 text-blue-800',
-            self::Sakit      => 'bg-purple-100 text-purple-800',
-            self::Cuti       => 'bg-cyan-100 text-cyan-800',
-            self::Dinas      => 'bg-indigo-100 text-indigo-800',
+            self::Alfa => 'bg-red-100 text-red-800',
+            self::Izin => 'bg-blue-100 text-blue-800',
+            self::Sakit => 'bg-purple-100 text-purple-800',
+            self::Cuti => 'bg-cyan-100 text-cyan-800',
+            self::Dinas => 'bg-indigo-100 text-indigo-800',
         };
     }
 }
