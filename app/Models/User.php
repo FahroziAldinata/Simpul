@@ -70,7 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
         return LogOptions::defaults()
             ->logAll()
             ->logOnlyDirty()
-            ->logExcept(['preferences'])
+            ->logExcept(['preferences', 'updated_at'])
             ->dontSubmitEmptyLogs();
     }
 
