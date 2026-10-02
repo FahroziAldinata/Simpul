@@ -140,7 +140,27 @@ class AbsensiSyncController extends Controller
                 continue;
             }
 
-            // 5. Validasi token QR dengan waktu koreksi scan (bukan waktu terima request)
+            // 5. Jika jenis absen adalah 'pulang', wajib sudah ada catatan 'masuk' pada hari yang sama
+            // Jika belum ada, kembalikan 'failed' (bukan conflict_final) agar masuk backoff retry loop
+            if ($jenis === JenisAbsensi::Pulang) {
+                $adaAbsenMasuk = Absensi::where('pegawai_id', $pegawai->id)
+                    ->where('tanggal', $tanggal)
+                    ->where('jenis', JenisAbsensi::Masuk->value)
+                    ->exists();
+
+                if (! $adaAbsenMasuk) {
+                    $hasil[] = [
+                        'client_uuid' => $clientUuid,
+                        'status' => 'failed',
+                        'kode' => 'belum_absen_masuk',
+                        'pesan' => 'Belum ada catatan absen masuk pada tanggal ini. Akan dicoba lagi otomatis.',
+                    ];
+
+                    continue;
+                }
+            }
+
+            // 6. Validasi token QR dengan waktu koreksi scan (bukan waktu terima request)
             $validasiQr = $this->qrTokenService->validasiPayload((string) $item['token_qr'], $waktuKoreksi);
             if (! $validasiQr['valid']) {
                 $hasil[] = [

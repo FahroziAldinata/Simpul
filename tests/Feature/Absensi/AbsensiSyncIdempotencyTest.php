@@ -293,4 +293,120 @@ class AbsensiSyncIdempotencyTest extends TestCase
         // Harus 404 per isolasi multi-tenant SIMPUL
         $response->assertNotFound();
     }
+
+    /**
+     * Keputusan #5: Absen pulang memerlukan catatan absen masuk terlebih dahulu.
+     * Jika item pulang sampai lebih dulu, server mengembalikan status 'failed' (bukan conflict_final)
+     * agar klien memasukkan ke antrean retry backoff sampai absen masuk tercatat.
+     */
+    public function test_sync_pulang_sebelum_ada_absen_masuk_ditolak_dengan_status_failed_untuk_diretry(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-05 15:05:00'));
+        $payloadQr = $this->qrTokenService->buatPayloadQr($this->titik);
+        $clientUuidPulang = (string) Str::uuid();
+
+        // 1. Kirim item pulang saat BELUM ada catatan absen masuk hari ini
+        $response = $this->actingAs($this->userGuru)
+            ->withoutMiddleware(ValidateCsrfToken::class)
+            ->postJson(route('absensi.sync'), [
+                'items' => [
+                    [
+                        'client_uuid' => $clientUuidPulang,
+                        'token_qr' => $payloadQr,
+                        'jenis' => 'pulang',
+                        'captured_at' => now()->getTimestampMs(),
+                    ],
+                ],
+            ]);
+
+        // Harus berstatus failed dengan kode belum_absen_masuk (agar di-retry oleh backoff)
+        $response->assertOk()
+            ->assertJsonPath('hasil.0.client_uuid', $clientUuidPulang)
+            ->assertJsonPath('hasil.0.status', 'failed')
+            ->assertJsonPath('hasil.0.kode', 'belum_absen_masuk');
+
+        $this->assertDatabaseMissing('absensi', [
+            'client_uuid' => $clientUuidPulang,
+        ]);
+
+        // 2. Sekarang simulasikan absen masuk berhasil tercatat
+        Absensi::create([
+            'sekolah_id' => $this->sekolah->id,
+            'pegawai_id' => $this->pegawai->id,
+            'tanggal' => '2026-10-05',
+            'jenis' => 'masuk',
+            'waktu_server' => Carbon::parse('2026-10-05 06:55:00'),
+            'status' => 'hadir',
+            'sumber' => 'offline',
+            'client_uuid' => (string) Str::uuid(),
+        ]);
+
+        // 3. Retry item pulang yang sama
+        $retryResponse = $this->actingAs($this->userGuru)
+            ->withoutMiddleware(ValidateCsrfToken::class)
+            ->postJson(route('absensi.sync'), [
+                'items' => [
+                    [
+                        'client_uuid' => $clientUuidPulang,
+                        'token_qr' => $payloadQr,
+                        'jenis' => 'pulang',
+                        'captured_at' => now()->getTimestampMs(),
+                    ],
+                ],
+            ]);
+
+        // Setelah absen masuk ada, retry item pulang berhasil tersinkron!
+        $retryResponse->assertOk()
+            ->assertJsonPath('hasil.0.client_uuid', $clientUuidPulang)
+            ->assertJsonPath('hasil.0.status', 'synced');
+
+        $this->assertDatabaseHas('absensi', [
+            'client_uuid' => $clientUuidPulang,
+            'jenis' => 'pulang',
+        ]);
+    }
+
+    /**
+     * Keputusan #5: Batch sync berisi item masuk dan pulang sekaligus dalam satu request.
+     * Karena diproses berurutan, item masuk disimpan lebih dulu dan item pulang langsung valid.
+     */
+    public function test_sync_batch_berisi_masuk_dan_pulang_sekaligus_keduanya_berhasil_tersinkron(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-05 06:45:00'));
+        $qrMasuk = $this->qrTokenService->buatPayloadQr($this->titik);
+
+        Carbon::setTestNow(Carbon::parse('2026-10-05 15:10:00'));
+        $qrPulang = $this->qrTokenService->buatPayloadQr($this->titik);
+
+        $uuidMasuk = (string) Str::uuid();
+        $uuidPulang = (string) Str::uuid();
+
+        $response = $this->actingAs($this->userGuru)
+            ->withoutMiddleware(ValidateCsrfToken::class)
+            ->postJson(route('absensi.sync'), [
+                'items' => [
+                    [
+                        'client_uuid' => $uuidMasuk,
+                        'token_qr' => $qrMasuk,
+                        'jenis' => 'masuk',
+                        'captured_at' => Carbon::parse('2026-10-05 06:45:10')->getTimestampMs(),
+                    ],
+                    [
+                        'client_uuid' => $uuidPulang,
+                        'token_qr' => $qrPulang,
+                        'jenis' => 'pulang',
+                        'captured_at' => Carbon::parse('2026-10-05 15:10:05')->getTimestampMs(),
+                    ],
+                ],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('hasil.0.client_uuid', $uuidMasuk)
+            ->assertJsonPath('hasil.0.status', 'synced')
+            ->assertJsonPath('hasil.1.client_uuid', $uuidPulang)
+            ->assertJsonPath('hasil.1.status', 'synced');
+
+        $this->assertDatabaseHas('absensi', ['client_uuid' => $uuidMasuk, 'jenis' => 'masuk']);
+        $this->assertDatabaseHas('absensi', ['client_uuid' => $uuidPulang, 'jenis' => 'pulang']);
+    }
 }
