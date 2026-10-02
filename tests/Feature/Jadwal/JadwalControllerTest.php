@@ -169,6 +169,123 @@ class JadwalControllerTest extends TestCase
     }
 
     /**
+     * RBAC 7 Peran (PRD 4.2): Operator hanya baca (beda dari modul lain), Waka Kurikulum CRUD penuh.
+     */
+    public function test_rbac_7_peran_operator_tidak_bisa_crud_waka_kurikulum_bisa_crud(): void
+    {
+        $jadwal = JadwalPelajaran::factory()->create([
+            'sekolah_id' => $this->sekolah->id,
+            'semester_id' => $this->semester->id,
+            'rombel_id' => $this->rombel1->id,
+            'mata_pelajaran_id' => $this->mapel1->id,
+            'guru_id' => $this->guru1->id,
+            'ruang_id' => $this->ruang1->id,
+            'hari' => 1,
+            'jam_mulai_ke' => 1,
+            'jam_selesai_ke' => 3,
+        ]);
+
+        // 1. Operator: Hanya baca (canManage: false), seluruh aksi mutasi (store, update, move, destroy) harus 403
+        $userOperator = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+        $userOperator->assignRole('operator');
+
+        $this->actingAs($userOperator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->get(route('jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('canManage', false));
+
+        $this->actingAs($userOperator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->post(route('jadwal.store'), [
+                'semester_id' => $this->semester->id,
+                'rombel_id' => $this->rombel1->id,
+                'mata_pelajaran_id' => $this->mapel2->id,
+                'guru_id' => $this->guru2->id,
+                'hari' => 2,
+                'jam_mulai_ke' => 1,
+                'jam_selesai_ke' => 3,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($userOperator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->put(route('jadwal.update', $jadwal), [
+                'semester_id' => $this->semester->id,
+                'rombel_id' => $this->rombel1->id,
+                'mata_pelajaran_id' => $this->mapel1->id,
+                'guru_id' => $this->guru1->id,
+                'hari' => 2,
+                'jam_mulai_ke' => 1,
+                'jam_selesai_ke' => 3,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($userOperator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->patchJson(route('jadwal.move', $jadwal), [
+                'hari' => 2,
+                'jam_mulai_ke' => 4,
+                'jam_selesai_ke' => 6,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($userOperator)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->delete(route('jadwal.destroy', $jadwal))
+            ->assertForbidden();
+
+        // 2. Peran baca lainnya (Kepsek, Wali Kelas, Orang Tua) juga hanya baca dan dilarang membuat jadwal
+        $readOnlyRoles = ['kepsek', 'wali_kelas', 'orang_tua'];
+        foreach ($readOnlyRoles as $role) {
+            $userReadOnly = User::factory()->create(['sekolah_id' => $this->sekolah->id]);
+            $userReadOnly->assignRole($role);
+
+            $this->actingAs($userReadOnly)
+                ->withSession(['sekolah_id' => $this->sekolah->id])
+                ->get(route('jadwal.index'))
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page->where('canManage', false));
+
+            $this->actingAs($userReadOnly)
+                ->withSession(['sekolah_id' => $this->sekolah->id])
+                ->post(route('jadwal.store'), [
+                    'semester_id' => $this->semester->id,
+                    'rombel_id' => $this->rombel1->id,
+                    'mata_pelajaran_id' => $this->mapel2->id,
+                    'guru_id' => $this->guru2->id,
+                    'hari' => 2,
+                    'jam_mulai_ke' => 1,
+                    'jam_selesai_ke' => 3,
+                ])
+                ->assertForbidden();
+        }
+
+        // 3. Waka Kurikulum: CRUD penuh
+        $this->actingAs($this->userWaka)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->get(route('jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('canManage', true));
+
+        $this->actingAs($this->userWaka)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->patchJson(route('jadwal.move', $jadwal), [
+                'hari' => 2,
+                'jam_mulai_ke' => 1,
+                'jam_selesai_ke' => 3,
+            ])
+            ->assertOk();
+
+        // 4. Super Admin: CRUD penuh
+        $this->actingAs($this->userSuperAdmin)
+            ->withSession(['sekolah_id' => $this->sekolah->id])
+            ->get(route('jadwal.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('canManage', true));
+    }
+
+    /**
      * T-11.05 & Store: Waka Kurikulum dapat menambahkan jadwal valid baru.
      */
     public function test_waka_kurikulum_bisa_menambah_jadwal_valid(): void
