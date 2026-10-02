@@ -176,6 +176,7 @@ export function useOfflineQueue() {
                 };
 
                 // Update status per-item sesuai response
+                const itemsGagalServer: AntreanAbsensi[] = [];
                 for (const hasil of data.hasil) {
                     const statusBaru: StatusAntrean =
                         hasil.status === 'synced'
@@ -189,6 +190,17 @@ export function useOfflineQueue() {
                         kode_error: hasil.kode ?? null,
                         pesan_error: hasil.pesan ?? null,
                     });
+
+                    if (statusBaru === 'failed') {
+                        const itemObj = pending.find((p) => p.client_uuid === hasil.client_uuid);
+                        if (itemObj) {
+                            itemsGagalServer.push(itemObj);
+                        }
+                    }
+                }
+
+                if (itemsGagalServer.length > 0) {
+                    await _terapkanBackoff(itemsGagalServer);
                 }
             } else if (response.status === 401) {
                 // Sesi expired — kembalikan ke pending agar bisa dicoba lagi setelah login

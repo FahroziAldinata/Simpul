@@ -100,7 +100,13 @@ const waktuScan = computed(() =>
 
             <!-- Pesan error detail (jika ada) -->
             <div
-                v-if="item.pesan_error"
+                v-if="item.kode_error === 'belum_absen_masuk'"
+                class="mt-1 rounded bg-amber-100/80 px-1.5 py-0.5 text-xs text-amber-800"
+            >
+                Menunggu absensi masuk tersinkron — akan dicoba lagi otomatis.
+            </div>
+            <div
+                v-else-if="item.pesan_error"
                 class="mt-1 text-xs text-slate-600"
             >
                 {{ item.pesan_error }}
