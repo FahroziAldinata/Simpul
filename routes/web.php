@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Absensi\AbsensiController;
+use App\Http\Controllers\Absensi\AbsensiSyncController;
 use App\Http\Controllers\Absensi\JamKerjaController;
 use App\Http\Controllers\Absensi\TampilanQrController;
 use App\Http\Controllers\Absensi\TitikAbsenController;
@@ -226,6 +227,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // T-08.08 — Absen Manual (Operator/Super Admin)
     Route::get('absensi/manual', [AbsensiController::class, 'indexManual'])->name('absensi.manual.index');
     Route::post('absensi/manual', [AbsensiController::class, 'simpanManual'])->name('absensi.manual.simpan');
+
+    // T-10.05 — Endpoint Sync Antrean Absensi Offline (PWA)
+    Route::post('api/absensi/sync', [AbsensiSyncController::class, 'sync'])->name('absensi.sync');
 
     // =========================================================================
     // MINGGU 9 — IZIN, CUTI & REKAP

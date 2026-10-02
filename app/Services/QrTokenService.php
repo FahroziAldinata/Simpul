@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Scopes\SekolahScope;
 use App\Models\TitikAbsen;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -52,7 +53,7 @@ class QrTokenService
      *
      * @return array{valid: bool, sekolah_id: string|null, titik_absen_id: string|null, alasan: string|null}
      */
-    public function validasiPayload(string $payloadBase64): array
+    public function validasiPayload(string $payloadBase64, ?Carbon $capturedAt = null): array
     {
         $invalid = fn (string $alasan) => [
             'valid' => false,
@@ -86,8 +87,10 @@ class QrTokenService
         $claimedWindow = (int) $claimedWindowStr;
 
         // Cek apakah window masih dalam toleransi ±1
-        $currentWindow = $this->currentWindow();
-        if (abs($currentWindow - $claimedWindow) > 1) {
+        // Jika capturedAt diberikan (offline sync), gunakan window saat scan dilakukan
+        $referenceTimestamp = $capturedAt ? $capturedAt->timestamp : now()->timestamp;
+        $referenceWindow = intdiv($referenceTimestamp, self::WINDOW_SECONDS);
+        if (abs($referenceWindow - $claimedWindow) > 1) {
             return $invalid('QR sudah kedaluwarsa. Minta QR terbaru.');
         }
 
