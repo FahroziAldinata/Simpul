@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { Clock } from '@lucide/vue';
 import { computed } from 'vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import AntreanOfflinePanel from '@/components/offline/AntreanOfflinePanel.vue';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useOfflineQueue } from '@/offline/useOfflineQueue';
 import { update as updateSekolahAktif } from '@/routes/sekolah-aktif';
 import type { BreadcrumbItem } from '@/types';
 
@@ -48,6 +56,8 @@ const sekolahAktifId = computed(() => auth.value.sekolah_aktif_id ?? '');
 const periode = computed(() => (page.props.periode ?? null) as PeriodeData | null);
 const daftarSemester = computed(() => periode.value?.daftar_semester ?? []);
 const selectedSemesterId = computed(() => periode.value?.selected_semester_id ?? '');
+
+const { antrean, jumlahPending } = useOfflineQueue();
 
 function onSekolahChange(event: Event) {
     const target = event.target as HTMLSelectElement;
@@ -131,6 +141,24 @@ function onPeriodeChange(event: Event) {
                     </option>
                 </select>
             </div>
+
+            <!-- Antrean Offline Badge & Panel (T-10.04) -->
+            <DropdownMenu v-if="antrean.length > 0">
+                <DropdownMenuTrigger as-child>
+                    <button
+                        type="button"
+                        class="focus-visible:outline-xs inline-flex h-8 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent focus-visible:ring-1 focus-visible:ring-ring"
+                        id="btn-antrean-offline-topbar"
+                        :aria-label="`Antrean absensi offline: ${jumlahPending} item`"
+                    >
+                        <Clock class="h-3.5 w-3.5 text-amber-500 shrink-0" aria-hidden="true" />
+                        <span>{{ jumlahPending > 0 ? `${jumlahPending} Antrean` : 'Antrean' }}</span>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-80 p-0">
+                    <AntreanOfflinePanel />
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     </header>
 </template>
