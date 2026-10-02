@@ -74,7 +74,7 @@ const mainNavItems = computed<NavItem[]>(() => {
     if (can('jadwal.view')) {
         items.push({
             title: 'Jadwal',
-            href: '#',
+            href: '/jadwal',
             icon: Calendar,
         });
     }

@@ -14,6 +14,7 @@ use App\Http\Controllers\Izin\InboxPersetujuanController;
 use App\Http\Controllers\Izin\JenisIzinController;
 use App\Http\Controllers\Izin\PengajuanIzinController;
 use App\Http\Controllers\Izin\RekapAbsensiController;
+use App\Http\Controllers\JadwalController;
 use App\Http\Controllers\JurusanController;
 use App\Http\Controllers\KalenderController;
 use App\Http\Controllers\KartuPegawaiController;
@@ -263,6 +264,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('izin/ekspor')->name('izin.ekspor.')->group(function () {
         Route::get('excel', [EksporAbsensiController::class, 'excel'])->name('excel');
         Route::get('pdf', [EksporAbsensiController::class, 'pdf'])->name('pdf');
+    });
+
+    // Minggu 11 — Jadwal Pelajaran (T-11.01 s/d T-11.10)
+    Route::prefix('jadwal')->name('jadwal.')->group(function () {
+        Route::get('/', [JadwalController::class, 'index'])->name('index');
+        Route::post('/', [JadwalController::class, 'store'])->name('store');
+        Route::put('{jadwal}', [JadwalController::class, 'update'])->name('update');
+        Route::patch('{jadwal}/move', [JadwalController::class, 'move'])->name('move');
+        Route::delete('{jadwal}', [JadwalController::class, 'destroy'])->name('destroy');
     });
 
 });
