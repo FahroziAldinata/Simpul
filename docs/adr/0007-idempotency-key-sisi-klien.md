@@ -39,6 +39,13 @@ Endpoint `POST /api/absensi/sync` dikecualikan secara spesifik dari middleware `
   2. Sifat operasi sync adalah idempoten terhadap `client_uuid` yang sudah terdaftar.
   3. `sekolah_id` diisolasi langsung dari relasi `pegawai->sekolah_id` pengguna yang login (Keputusan #1), bukan dari input klien yang bisa dimanipulasi.
 
+### 4. Batasan Eksekusi Background Sync & Pola Sesi Web (Opsi B)
+Karena SIMPUL menggunakan autentikasi sesi berbasis cookie web (`credentials: 'include'`) sesuai Opsi B dan bukan arsitektur API stateless dengan token yang disimpan di IndexedDB (Opsi A / Sanctum):
+- **Saat browser/tab masih terbuka (foreground atau minimized)**: Event `sync` di Service Worker mendelegasikan pemicu sync ke client window via `postMessage`, dan composable `useOfflineQueue` mengeksekusi flush dengan cookie sesi aktif.
+- **Saat browser ditutup penuh (headless background)**: Service Worker tidak melakukan `fetch()` secara mandiri di background tanpa client window aktif karena ketiadaan token otentikasi permanen di IndexedDB.
+- **Perilaku Riil**: Sinkronisasi dieksekusi secara otomatis dan transparan **segera setelah pengguna membuka kembali aplikasi atau tab browser SIMPUL** (melalui event `online` dan lifecycle mount `useOfflineQueue`).
+- Hal ini adalah kompromi yang disepakati: menjaga kesederhanaan monolitik sesi web tanpa token management di client, dengan batas realistis bahwa sync selesai saat jendela aplikasi dibuka kembali oleh pengguna.
+
 ## Konsekuensi & Trade-off
 
 - **Positif:** 
